@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steve Connect - Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            height: 80vh;
+        }
+
+        /* Chat Interface */
+        .chat-section {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            background: #e3f2fd;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .steve-message {
+            background: #f5f5f5;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .chat-input input:focus {
+            border-color: #667eea;
+        }
+
+        .chat-input button {
+            margin-left: 10px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* App Display Section */
+        .app-section {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .app-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .app-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        /* App-specific styles */
+        .app-ideation {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        }
+
+        .app-vibe-studio {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        }
+
+        .app-design {
+            background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%);
+        }
+
+        .app-gmail {
+            background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .btn-download:hover {
+            background: linear-gradient(135deg, #218838 0%, #17a2b8 100%);
+        }
+
+        /* Category selection grid */
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .category-card {
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .category-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .category-card.selected {
+            border-color: #667eea;
+            background: #e3f2fd;
+        }
+
+        /* Loading states */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading::before {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e0e0e0;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Progress indicator */
+        .progress-bar {
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        /* Success/Error states */
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        /* Download section styling */
+        .download-section {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .category-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🚀 Steve Connect</h1>
+            <p>AI-Powered App Orchestrator Demo</p>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Chat Section -->
+            <div class="chat-section">
+                <div class="chat-header">
+                    <h3>💬 Chat with Steve</h3>
+                    <p>Your AI Assistant</p>
+                </div>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message steve-message">
+                        Hi! I'm Steve, your AI assistant. I can help you turn your ideas into reality! 
+                        What would you like to create today? 🚀
+                    </div>
+                </div>
+                <div class="chat-input">
+                    <input type="text" id="messageInput" placeholder="Type your message here..." onkeypress="handleKeyPress(event)">
+                    <button onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+
+            <!-- App Display Section -->
+            <div class="app-section">
+                <div class="app-header">
+                    <h3 id="appTitle">Welcome to Steve Connect</h3>
+                    <span id="appStatus">Ready to help you build amazing apps!</span>
+                </div>
+                <div class="app-content" id="appContent">
+                    <div style="text-align: center; padding: 40px; color: #666;">
+                        <h2>🎯 Complete Workflow Demo</h2>
+                        <p>Experience the full journey from idea to launch:</p>
+                        <div style="margin: 30px 0; text-align: left; max-width: 400px; margin: 30px auto;">
+                            <div style="margin: 15px 0;">💡 <strong>Ideation:</strong> Brainstorm your app concept</div>
+                            <div style="margin: 15px 0;">💻 <strong>Vibe Studio:</strong> Generate Streamlit code</div>
+                            <div style="margin: 15px 0;">🎨 <strong>Design:</strong> Create marketing visuals</div>
+                            <div style="margin: 15px 0;">📧 <strong>Gmail:</strong> Draft launch emails</div>
+                        </div>
+                        <p><strong>Try saying:</strong> "I want to create an app" or "I have an idea for a fitness tracker"</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentSessionId = null;
+        let currentApp = null;
+        let workflowProgress = {
+            ideation: false,
+            vibe_studio: false,
+            design: false,
+            gmail: false
+        };
+
+        // TODO: Update this to your actual API URL
+        const API_BASE = 'http://localhost:8000/api/v1';
+
+        // Chat functionality
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            // Add user message to chat
+            addMessage(message, 'user');
+            input.value = '';
+
+            // Show loading
+            const loadingDiv = addMessage('Steve is thinking...', 'steve');
+            loadingDiv.classList.add('loading');
+
+            try {
+                // Send to Steve Connect API
+                const response = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: currentSessionId,
+                        user_id: 'demo_user'
+                    })
+                });
+
+                const data = await response.json();
+                
+                // Remove loading message
+                loadingDiv.remove();
+
+                // Add Steve's response
+                addMessage(data.response, 'steve');
+
+                // Update session ID
+                currentSessionId = data.session_id;
+
+                // Handle app opening
+                if (data.action === 'open_app' && data.app_to_open) {
+                    setTimeout(() => {
+                        openApp(data.app_to_open);
+                    }, 1000);
+                }
+
+            } catch (error) {
+                loadingDiv.remove();
+                addMessage('Sorry, I encountered an error. Please try again.', 'steve');
+                console.error('Chat error:', error);
+            }
+        }
+
+        function addMessage(text, sender) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            messageDiv.textContent = text;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            return messageDiv;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // App management
+        function openApp(appName) {
+            currentApp = appName;
+            const appTitle = document.getElementById('appTitle');
+            const appContent = document.getElementById('appContent');
+            const appSection = document.querySelector('.app-section');
+
+            // Remove existing app classes
+            appSection.className = 'app-section';
+            
+            switch(appName) {
+                case 'ideation':
+                    appSection.classList.add('app-ideation');
+                    appTitle.textContent = '💡 Ideation App';
+                    appContent.innerHTML = getIdeationInterface();
+                    break;
+                case 'vibe_studio':
+                    appSection.classList.add('app-vibe-studio');
+                    appTitle.textContent = '💻 Vibe Studio';
+                    appContent.innerHTML = getVibeStudioInterface();
+                    break;
+                case 'design':
+                    appSection.classList.add('app-design');
+                    appTitle.textContent = '🎨 Design App';
+                    appContent.innerHTML = getDesignInterface();
+                    break;
+                case 'gmail':
+                    appSection.classList.add('app-gmail');
+                    appTitle.textContent = '📧 Gmail Integration';
+                    appContent.innerHTML = getGmailInterface();
+                    break;
+            }
+        }
+
+        // App interfaces
+        function getIdeationInterface() {
+            return `
+                <h3>Brainstorm Your App Idea</h3>
+                <div class="form-group">
+                    <label>App Name:</label>
+                    <input type="text" id="appName" placeholder="Enter your app name">
+                </div>
+                <div class="form-group">
+                    <label>App Description:</label>
+                    <textarea id="appDescription" rows="3" placeholder="Describe your app idea..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Select Category:</label>
+                    <div class="category-grid">
+                        <div class="category-card" onclick="selectCategory('digital_product')">
+                            <div>📱</div>
+                            <div>Digital Product</div>
+                        </div>
+                        <div class="category-card" onclick="selectCategory('finance')">
+                            <div>💰</div>
+                            <div>Finance</div>
+                        </div>
+                        <div class="category-card" onclick="selectCategory('healthcare')">
+                            <div>🏥</div>
+                            <div>Healthcare</div>
+                        </div>
+                        <div class="category-card" onclick="selectCategory('education')">
+                            <div>📚</div>
+                            <div>Education</div>
+                        </div>
+                        <div class="category-card" onclick="selectCategory('entertainment')">
+                            <div>🎮</div>
+                            <div>Entertainment</div>
+                        </div>
+                        <div class="category-card" onclick="selectCategory('travel')">
+                            <div>✈️</div>
+                            <div>Travel</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn" onclick="submitIdeation()">💡 Save Idea</button>
+            `;
+        }
+
+        function getVibeStudioInterface() {
+            return `
+                <h3>Generate Your Streamlit App</h3>
+                <div class="form-group">
+                    <label>Additional Requirements:</label>
+                    <textarea id="codeRequirements" rows="3" placeholder="Any specific features or requirements?"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Complexity Level:</label>
+                    <select id="complexityLevel">
+                        <option value="simple">Simple - Basic functionality</option>
+                        <option value="medium">Medium - Multiple pages</option>
+                        <option value="complex">Complex - Full featured app</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="generateApp()">💻 Generate App</button>
+                <div id="codeResult"></div>
+            `;
+        }
+
+        function getDesignInterface() {
+            return `
+                <h3>Create Marketing Visuals</h3>
+                <div class="form-group">
+                    <label>Image Type:</label>
+                    <select id="imageType">
+                        <option value="marketing">Marketing Image</option>
+                        <option value="logo">App Logo</option>
+                        <option value="screenshot">App Screenshot</option>
+                        <option value="promotional">Promotional Banner</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Custom Prompt:</label>
+                    <textarea id="imagePrompt" rows="3" placeholder="Describe the image you want..."></textarea>
+                </div>
+                <button class="btn" onclick="generateImage()">🎨 Generate Image</button>
+                <div id="imageResult"></div>
+            `;
+        }
+
+        function getGmailInterface() {
+            return `
+                <h3>Draft Launch Email</h3>
+                <div class="form-group">
+                    <label>Email Type:</label>
+                    <select id="emailType">
+                        <option value="launch">Product Launch</option>
+                        <option value="update">Feature Update</option>
+                        <option value="promotion">Promotional Campaign</option>
+                        <option value="newsletter">Newsletter</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Target Audience:</label>
+                    <select id="targetAudience">
+                        <option value="general">General Users</option>
+                        <option value="technical">Technical Users</option>
+                        <option value="business">Business Users</option>
+                        <option value="students">Students</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="generateEmail()">📧 Generate Email</button>
+                <div id="emailResult"></div>
+            `;
+        }
+
+        // App-specific functions
+        let selectedCategory = null;
+
+        function selectCategory(category) {
+            selectedCategory = category;
+            // Update UI
+            document.querySelectorAll('.category-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event.target.closest('.category-card').classList.add('selected');
+        }
+
+        async function submitIdeation() {
+            const appName = document.getElementById('appName').value;
+            const appDescription = document.getElementById('appDescription').value;
+            
+            if (!appName || !appDescription || !selectedCategory) {
+                alert('Please fill in all fields and select a category');
+                return;
+            }
+
+            const data = {
+                name: appName,
+                description: appDescription,
+                category: selectedCategory
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/ideation/submit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        app_name: 'ideation',
+                        action: 'submit_data',
+                        session_id: currentSessionId,
+                        data: data
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    addMessage(result.next_suggestion, 'steve');
+                    workflowProgress.ideation = true;
+                    updateProgress();
+                    document.getElementById('appContent').innerHTML = `
+                        <div class="success">✅ Ideation completed successfully!</div>
+                        <div><strong>App Name:</strong> ${appName}</div>
+                        <div><strong>Category:</strong> ${selectedCategory}</div>
+                        <div><strong>Description:</strong> ${appDescription}</div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Ideation error:', error);
+                addMessage('Failed to save ideation data. Please try again.', 'steve');
+            }
+        }
+
+        async function generateApp() {
+            const requirements = document.getElementById('codeRequirements').value;
+            const complexity = document.getElementById('complexityLevel').value;
+
+            const resultDiv = document.getElementById('codeResult');
+            resultDiv.innerHTML = '<div class="loading">Generating your Streamlit app...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/vibe-studio/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        app_name: 'vibe_studio',
+                        action: 'generate',
+                        session_id: currentSessionId,
+                        data: { requirements, complexity }
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    addMessage(result.next_suggestion, 'steve');
+                    workflowProgress.vibe_studio = true;
+                    updateProgress();
+                    
+                    const appData = result.result;
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ App generated successfully!</div>
+                        <div><strong>App Name:</strong> ${appData.app_name}</div>
+                        <div><strong>Files Generated:</strong> ${appData.app_structure.total_files}</div>
+                        <div><strong>Run Command:</strong> <code>${appData.run_command}</code></div>
+                        <div class="download-section">
+                            <h4>📥 Download Options</h4>
+                            <button class="btn btn-download" onclick="downloadProjectFiles('${appData.app_name}')">📥 Download Project ZIP</button>
+                            <button class="btn" onclick="downloadIndividualFile()">📄 Download Individual Files</button>
+                        </div>
+                        <details>
+                            <summary>View Generated Files</summary>
+                            <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px; overflow: auto; max-height: 300px;">
+${Object.keys(appData.project_files).join('\n')}
+                            </pre>
+                        </details>
+                    `;
+                    
+                    // Store the project files globally for download
+                    window.currentProjectFiles = appData.project_files;
+                    window.currentAppName = appData.app_name;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Failed to generate app: ${result.result.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error generating app</div>`;
+                console.error('Code generation error:', error);
+            }
+        }
+
+        // Download functionality for generated project files
+        async function downloadProjectFiles(appName) {
+            if (!window.currentProjectFiles) {
+                alert('No project files available for download');
+                return;
+            }
+
+            try {
+                // We'll use JSZip library to create the ZIP file
+                // First, let's add the JSZip library via CDN
+                if (!window.JSZip) {
+                    await loadJSZip();
+                }
+
+                const zip = new JSZip();
+                
+                // Add each file to the zip
+                Object.entries(window.currentProjectFiles).forEach(([filePath, fileContent]) => {
+                    zip.file(filePath, fileContent);
+                });
+
+                // Generate the ZIP file
+                const zipBlob = await zip.generateAsync({type: "blob"});
+                
+                // Create download link
+                const downloadLink = document.createElement('a');
+                downloadLink.href = URL.createObjectURL(zipBlob);
+                downloadLink.download = `${appName || 'streamlit-app'}-project.zip`;
+                
+                // Trigger download
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                
+                // Clean up
+                URL.revokeObjectURL(downloadLink.href);
+                
+                addMessage(`📥 Downloaded ${appName} project files successfully!`, 'steve');
+                
+            } catch (error) {
+                console.error('Download error:', error);
+                alert('Failed to download project files. Please try again.');
+            }
+        }
+
+        // Function to dynamically load JSZip library
+        function loadJSZip() {
+            return new Promise((resolve, reject) => {
+                if (window.JSZip) {
+                    resolve();
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error('Failed to load JSZip library'));
+                document.head.appendChild(script);
+            });
+        }
+
+        // Function to download individual files
+        function downloadIndividualFile() {
+            if (!window.currentProjectFiles) {
+                alert('No project files available');
+                return;
+            }
+
+            // Create a modal or selection interface for individual files
+            const fileList = Object.keys(window.currentProjectFiles);
+            const fileSelection = prompt(`Select file to download:\n${fileList.map((file, index) => `${index + 1}. ${file}`).join('\n')}\n\nEnter file number:`);
+            
+            if (fileSelection && !isNaN(fileSelection)) {
+                const fileIndex = parseInt(fileSelection) - 1;
+                if (fileIndex >= 0 && fileIndex < fileList.length) {
+                    const fileName = fileList[fileIndex];
+                    const fileContent = window.currentProjectFiles[fileName];
+                    
+                    // Create and download the file
+                    const blob = new Blob([fileContent], { type: 'text/plain' });
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = URL.createObjectURL(blob);
+                    downloadLink.download = fileName;
+                    
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+                    
+                    URL.revokeObjectURL(downloadLink.href);
+                    
+                    addMessage(`📄 Downloaded ${fileName} successfully!`, 'steve');
+                }
+            }
+        }
+
+        async function generateImage() {
+            const imageType = document.getElementById('imageType').value;
+            const prompt = document.getElementById('imagePrompt').value;
+
+            const resultDiv = document.getElementById('imageResult');
+            resultDiv.innerHTML = '<div class="loading">Generating your image...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/design/generate-image`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        app_name: 'design',
+                        action: 'generate_image',
+                        session_id: currentSessionId,
+                        data: { image_type: imageType, prompt }
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 'success' && result.result.success) {
+                    addMessage(result.next_suggestion, 'steve');
+                    workflowProgress.design = true;
+                    updateProgress();
+                    
+                    const imageData = result.result;
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Image generated successfully!</div>
+                        <div><strong>Type:</strong> ${imageData.image_type}</div>
+                        <div><strong>Model:</strong> ${imageData.model_used}</div>
+                        <img src="data:image/png;base64,${imageData.image_data}" style="max-width: 100%; border-radius: 8px; margin-top: 10px;" alt="Generated image">
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Failed to generate image</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error generating image</div>`;
+                console.error('Image generation error:', error);
+            }
+        }
+
+        async function generateEmail() {
+            const emailType = document.getElementById('emailType').value;
+            const targetAudience = document.getElementById('targetAudience').value;
+
+            const resultDiv = document.getElementById('emailResult');
+            resultDiv.innerHTML = '<div class="loading">Drafting your email...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/gmail/draft-email`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        app_name: 'gmail',
+                        action: 'draft_email',
+                        session_id: currentSessionId,
+                        data: { email_type: emailType, target_audience: targetAudience }
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 'success' && result.result.success) {
+                    addMessage(result.next_suggestion, 'steve');
+                    workflowProgress.gmail = true;
+                    updateProgress();
+                    
+                    const emailData = result.result;
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Email drafted successfully!</div>
+                        <div><strong>Subject:</strong> ${emailData.subject_line}</div>
+                        <div><strong>Type:</strong> ${emailData.email_type}</div>
+                        <div><strong>Predicted Open Rate:</strong> ${emailData.email_metrics.predicted_open_rate}</div>
+                        <details>
+                            <summary>Preview Email</summary>
+                            <div style="border: 1px solid #ddd; padding: 15px; margin-top: 10px; border-radius: 5px; background: white;">
+                                ${emailData.complete_email}
+                            </div>
+                        </details>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Failed to generate email</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error generating email</div>`;
+                console.error('Email generation error:', error);
+            }
+        }
+
+        function updateProgress() {
+            const completed = Object.values(workflowProgress).filter(Boolean).length;
+            const percentage = (completed / 4) * 100;
+            document.getElementById('progressFill').style.width = percentage + '%';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            addMessage('Welcome to Steve Connect! 🚀', 'steve');
+            addMessage('I can help you create amazing apps. Try saying "I want to create a fitness tracking app" to get started!', 'steve');
+        });
+    </script>
+</body>
+</html>

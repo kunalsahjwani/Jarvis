@@ -1,0 +1,39 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: steve_connect_db
+    environment:
+      # TODO: Update these values in your .env file to match your preferences
+      POSTGRES_USER: ${POSTGRES_USER}        # Change in .env if desired
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD} # Change in .env - use strong password
+      POSTGRES_DB: ${POSTGRES_DB}            # Change in .env if desired
+    ports:
+      - "5432:5432"  # TODO: Change left side if port 5432 is already in use on your machine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql  # TODO: We'll create this file next
+    restart: unless-stopped
+
+  app:
+    build: .  # TODO: We'll create Dockerfile next
+    container_name: steve_connect_app
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      # TODO: Add your actual API keys to .env file:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}        # Get from Google AI Studio
+      - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY}  # Get from Hugging Face
+    ports:
+      - "8000:8000"  # TODO: Change left side if port 8000 is already in use
+    depends_on:
+      - postgres
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
