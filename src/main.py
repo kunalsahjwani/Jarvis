@@ -1,7 +1,7 @@
-# src/main.py - Updated with proper initialization
+# src/main.py - Simplified without database dependencies
 """
 Steve Connect - AI App Orchestrator
-Main FastAPI application entry point
+Main FastAPI application entry point - No Database Version
 """
 
 from fastapi import FastAPI, HTTPException
@@ -11,12 +11,9 @@ from fastapi.responses import JSONResponse, FileResponse
 import uvicorn
 import os
 from dotenv import load_dotenv
-import asyncio
 
-# Import our components
-from src.database.connection import init_database
+# Import our components (no database imports)
 from src.api.routes import router
-from src.agents.rag_agent import RAGAgent
 
 # Load environment variables
 load_dotenv()
@@ -24,7 +21,7 @@ load_dotenv()
 # Initialize FastAPI app
 app = FastAPI(
     title="Steve Connect",
-    description="AI-powered app orchestrator for Steve OS ecosystem",
+    description="AI-powered app orchestrator for Steve OS ecosystem - No Database Version",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
@@ -46,33 +43,14 @@ if os.path.exists("frontend"):
 # Include API routes
 app.include_router(router, prefix="/api/v1")
 
-# Global RAG agent for initialization
-rag_agent = None
-
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database and other startup tasks"""
-    global rag_agent
-    
-    print("🚀 Starting Steve Connect...")
-    
-    try:
-        # Initialize database
-        await init_database()
-        print("✅ Database initialized successfully")
-        
-        # Initialize RAG agent and knowledge base
-        rag_agent = RAGAgent()
-        await rag_agent.initialize_knowledge_base()
-        print("✅ RAG knowledge base initialized")
-        
-        print("🎉 Steve Connect is ready!")
-        print("📊 API Documentation: http://localhost:8000/docs")
-        print("🌐 Frontend Demo: http://localhost:8000/")
-        
-    except Exception as e:
-        print(f"❌ Startup failed: {e}")
-        raise
+    """Initialize application without database"""
+    print("Starting Steve Connect (No Database Mode)...")
+    print("All agents initialized successfully")
+    print("Steve Connect is ready!")
+    print("API Documentation: http://localhost:8000/docs")
+    print("Frontend Demo: http://localhost:8000/")
 
 @app.get("/")
 async def serve_frontend():
@@ -82,6 +60,7 @@ async def serve_frontend():
     else:
         return JSONResponse({
             "message": "Steve Connect API is running!",
+            "mode": "No Database Mode",
             "frontend": "Frontend not found. Place index.html in /frontend directory",
             "docs": "/docs",
             "api": "/api/v1"
@@ -89,11 +68,11 @@ async def serve_frontend():
 
 @app.get("/health")
 async def health_check():
-    """Detailed health check"""
+    """Detailed health check without database"""
     return {
         "status": "healthy",
         "version": "1.0.0",
-        "database": "connected",
+        "mode": "no_database",
         "services": {
             "gemini": "configured" if os.getenv("GOOGLE_API_KEY") else "missing_api_key",
             "huggingface": "configured" if os.getenv("HUGGINGFACE_API_KEY") else "missing_api_key"
@@ -124,7 +103,6 @@ async def not_found_handler(request, exc):
     )
 
 if __name__ == "__main__":
-    # TODO: Change host/port if needed
     uvicorn.run(
         "src.main:app",
         host="0.0.0.0",

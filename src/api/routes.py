@@ -1,25 +1,17 @@
-# src/api/routes.py
+# src/api/routes.py - Simplified without database dependencies
 """
-FastAPI routes for Steve Connect - Updated with all agents integrated
+FastAPI routes for Steve Connect - No Database Version
 Handles all API endpoints for the orchestrator system
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import uuid
-import json
 
-# Import our database components
-from src.database.connection import get_db
-from src.database.models import Session, ContextMemory, AppState
-
-# Import all our agents
+# Import our agents (no database imports)
 from src.agents.router_agent import RouterAgent
-from src.agents.context_agent import ContextAgent
-from src.agents.rag_agent import RAGAgent
 from src.agents.leonardo_agent import LeonardoAgent
 from src.agents.code_agent import CodeAgent
 from src.agents.email_agent import EmailAgent
@@ -29,11 +21,12 @@ router = APIRouter()
 
 # Initialize all agents
 router_agent = RouterAgent()
-context_agent = ContextAgent()
-rag_agent = RAGAgent()
 leonardo_agent = LeonardoAgent()
 code_agent = CodeAgent()
 email_agent = EmailAgent()
+
+# In-memory storage for session data (temporary solution)
+session_storage = {}
 
 # Pydantic models for request/response validation
 class ChatMessage(BaseModel):
@@ -57,48 +50,43 @@ class AppAction(BaseModel):
 
 # Main chat endpoint - The heart of Steve Connect
 @router.post("/chat", response_model=ChatResponse)
-async def chat_with_steve(
-    message: ChatMessage,
-    db: AsyncSession = Depends(get_db)
-):
+async def chat_with_steve(message: ChatMessage):
     """
     Main chat interface for Steve Connect
-    Routes user messages using the Router Agent and maintains context
+    Routes user messages using the Router Agent and maintains context in memory
     """
     try:
         # Get or create session
         session_id = message.session_id
         if not session_id:
-            session_id = await context_agent.create_session(message.user_id)
+            session_id = str(uuid.uuid4())
+            session_storage[session_id] = {
+                "user_id": message.user_id,
+                "conversation_history": [],
+                "current_app": None,
+                "app_data": {}
+            }
         
         # Get current session context
-        session_context = await context_agent.get_session_context(session_id)
-        current_app = session_context.get("current_app") if session_context else None
+        session_context = session_storage.get(session_id, {})
+        current_app = session_context.get("current_app")
+        conversation_history = session_context.get("conversation_history", [])
         
-        # Get conversation history
-        conversation_history = session_context.get("conversation_flow", []) if session_context else []
-        
-        # Use RAG agent to enhance routing decision
-        rag_enhancement = await rag_agent.enhance_routing_decision(
-            message.message, 
-            session_context
-        )
+        # Add current message to history
+        conversation_history.append({"user": message.message})
         
         # Route the message using Router Agent
         routing_result = await router_agent.route_message(
             user_message=message.message,
             conversation_history=conversation_history,
             current_app=current_app,
-            context_data=rag_enhancement
+            context_data=session_context.get("app_data", {})
         )
         
-        # Update app state if needed
+        # Update session storage
+        session_storage[session_id]["conversation_history"] = conversation_history
         if routing_result["action"] == "open_app" and routing_result["app_to_open"]:
-            await context_agent.update_app_state(
-                session_id=session_id,
-                current_app=routing_result["app_to_open"],
-                previous_app=current_app
-            )
+            session_storage[session_id]["current_app"] = routing_result["app_to_open"]
         
         return ChatResponse(
             response=routing_result["response"],
@@ -118,10 +106,7 @@ async def chat_with_steve(
 
 # App-specific endpoints
 @router.post("/ideation/submit")
-async def submit_ideation_data(
-    action: AppAction,
-    db: AsyncSession = Depends(get_db)
-):
+async def submit_ideation_data(action: AppAction):
     """
     Handle ideation app data submission
     """
@@ -129,12 +114,9 @@ async def submit_ideation_data(
         session_id = action.session_id
         ideation_data = action.data
         
-        # Save ideation context
-        await context_agent.save_app_context(
-            session_id=session_id,
-            app_name="ideation",
-            context_data=ideation_data
-        )
+        # Save ideation context in memory
+        if session_id in session_storage:
+            session_storage[session_id]["app_data"]["ideation"] = ideation_data
         
         return JSONResponse({
             "status": "success",
@@ -150,10 +132,7 @@ async def submit_ideation_data(
         )
 
 @router.post("/vibe-studio/generate")
-async def generate_app_code(
-    action: AppAction,
-    db: AsyncSession = Depends(get_db)
-):
+async def generate_app_code(action: AppAction):
     """
     Generate Streamlit app code using Vibe Studio
     """
@@ -162,9 +141,9 @@ async def generate_app_code(
         user_requirements = action.data.get("requirements", "")
         complexity = action.data.get("complexity", "simple")
         
-        # Get ideation context for the app generation
-        app_context = await context_agent.get_context_for_app(session_id, "vibe_studio")
-        ideation_data = app_context.get("workflow_context", {}).get("idea", {})
+        # Get ideation context from memory
+        session_data = session_storage.get(session_id, {})
+        ideation_data = session_data.get("app_data", {}).get("ideation", {})
         
         if not ideation_data:
             return JSONResponse({
@@ -180,17 +159,14 @@ async def generate_app_code(
         )
         
         if generation_result["success"]:
-            # Save the generated app context
-            await context_agent.save_app_context(
-                session_id=session_id,
-                app_name="vibe_studio",
-                context_data={
+            # Save the generated app context in memory
+            if session_id in session_storage:
+                session_storage[session_id]["app_data"]["vibe_studio"] = {
                     "app_name": generation_result["app_name"],
                     "project_files": generation_result["project_files"],
                     "app_structure": generation_result["app_structure"],
                     "complexity": complexity
                 }
-            )
         
         return JSONResponse({
             "status": "success" if generation_result["success"] else "error",
@@ -205,10 +181,7 @@ async def generate_app_code(
         )
 
 @router.post("/design/generate-image")
-async def generate_marketing_image(
-    action: AppAction,
-    db: AsyncSession = Depends(get_db)
-):
+async def generate_marketing_image(action: AppAction):
     """
     Generate marketing images using Leonardo Agent (Hugging Face)
     """
@@ -217,34 +190,29 @@ async def generate_marketing_image(
         user_prompt = action.data.get("prompt", "")
         image_type = action.data.get("image_type", "marketing")
         
-        # Get context from previous apps
-        app_context = await context_agent.get_context_for_app(session_id, "design")
-        workflow_context = app_context.get("workflow_context", {})
+        # Get context from memory
+        session_data = session_storage.get(session_id, {})
+        ideation_data = session_data.get("app_data", {}).get("ideation", {})
         
-        # Build idea context for image generation
-        idea_context = workflow_context.get("idea", {})
-        if not idea_context:
-            idea_context = {"category": "technology", "description": "mobile application"}
+        if not ideation_data:
+            ideation_data = {"category": "technology", "description": "mobile application"}
         
         # Generate the image
         image_result = await leonardo_agent.generate_marketing_image(
-            idea_context=idea_context,
+            idea_context=ideation_data,
             user_prompt=user_prompt,
             image_type=image_type
         )
         
         if image_result["success"]:
-            # Save the design context
-            await context_agent.save_app_context(
-                session_id=session_id,
-                app_name="design",
-                context_data={
+            # Save the design context in memory
+            if session_id in session_storage:
+                session_storage[session_id]["app_data"]["design"] = {
                     "image_type": image_type,
                     "user_prompt": user_prompt,
                     "image_generated": True,
                     "image_metadata": image_result.get("metadata", {})
                 }
-            )
         
         return JSONResponse({
             "status": "success" if image_result["success"] else "error",
@@ -259,10 +227,7 @@ async def generate_marketing_image(
         )
 
 @router.post("/gmail/draft-email")
-async def draft_marketing_email(
-    action: AppAction,
-    db: AsyncSession = Depends(get_db)
-):
+async def draft_marketing_email(action: AppAction):
     """
     Draft marketing email using Email Agent
     """
@@ -271,8 +236,9 @@ async def draft_marketing_email(
         email_type = action.data.get("email_type", "launch")
         target_audience = action.data.get("target_audience", "general")
         
-        # Get full context from the entire workflow
-        session_context = await context_agent.get_session_context(session_id)
+        # Get full context from memory
+        session_data = session_storage.get(session_id, {})
+        app_data = session_data.get("app_data", {})
         
         # Build comprehensive app context for email
         app_context = {
@@ -282,8 +248,6 @@ async def draft_marketing_email(
         }
         
         # Extract data from each app in the workflow
-        app_data = session_context.get("app_data", {}) if session_context else {}
-        
         if "ideation" in app_data:
             ideation = app_data["ideation"]
             app_context.update({
@@ -307,17 +271,14 @@ async def draft_marketing_email(
         )
         
         if email_result["success"]:
-            # Save the email context
-            await context_agent.save_app_context(
-                session_id=session_id,
-                app_name="gmail",
-                context_data={
+            # Save the email context in memory
+            if session_id in session_storage:
+                session_storage[session_id]["app_data"]["gmail"] = {
                     "email_type": email_type,
                     "target_audience": target_audience,
                     "email_generated": True,
                     "subject_line": email_result["subject_line"]
                 }
-            )
         
         return JSONResponse({
             "status": "success" if email_result["success"] else "error",
@@ -333,15 +294,12 @@ async def draft_marketing_email(
 
 # Session and context management endpoints
 @router.get("/session/{session_id}/context")
-async def get_full_session_context(
-    session_id: str,
-    db: AsyncSession = Depends(get_db)
-):
+async def get_full_session_context(session_id: str):
     """
-    Get complete session context across all apps
+    Get complete session context from memory
     """
     try:
-        context = await context_agent.get_session_context(session_id)
+        context = session_storage.get(session_id)
         if not context:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -363,15 +321,14 @@ async def get_full_session_context(
         )
 
 @router.post("/session/{session_id}/reset")
-async def reset_session(
-    session_id: str,
-    db: AsyncSession = Depends(get_db)
-):
+async def reset_session(session_id: str):
     """
     Reset session context (useful for starting over)
     """
     try:
-        await context_agent.clear_session(session_id)
+        if session_id in session_storage:
+            del session_storage[session_id]
+        
         return JSONResponse({
             "status": "success",
             "message": "Session reset successfully",
@@ -393,45 +350,21 @@ async def check_agents_health():
     try:
         health_status = {
             "router_agent": "healthy",
-            "context_agent": "healthy",
-            "rag_agent": "healthy",
             "leonardo_agent": "healthy", 
             "code_agent": "healthy",
             "email_agent": "healthy"
         }
         
-        # TODO: Add actual health checks for each agent
-        # For now, we'll assume they're healthy if no exceptions
-        
         return JSONResponse({
             "overall_status": "healthy",
             "agents": health_status,
-            "timestamp": "2024-01-15T12:00:00Z"  # TODO: Use actual timestamp
+            "session_count": len(session_storage)
         })
         
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Agent health check failed: {str(e)}"
-        )
-
-# Initialize RAG knowledge base on startup
-@router.post("/admin/initialize-rag")
-async def initialize_rag_knowledge():
-    """
-    Initialize RAG knowledge base (admin endpoint)
-    """
-    try:
-        await rag_agent.initialize_knowledge_base()
-        return JSONResponse({
-            "status": "success",
-            "message": "RAG knowledge base initialized successfully"
-        })
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"RAG initialization failed: {str(e)}"
         )
 
 # Helper functions
@@ -468,8 +401,3 @@ def _get_next_step(progress: Dict[str, Any]) -> str:
         return "Draft launch emails with Gmail integration"
     else:
         return "Workflow complete! Your app is ready to launch."
-
-# TODO: Add these endpoints for the frontend:
-# @router.get("/apps/available") - List all available apps
-# @router.get("/workflow/suggested") - Get suggested workflow based on user input
-# @router.post("/feedback") - Collect user feedback for improvements

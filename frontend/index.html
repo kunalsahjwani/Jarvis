@@ -337,7 +337,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>🚀 Steve Connect</h1>
+            <h1>Steve Connect</h1>
             <p>AI-Powered App Orchestrator Demo</p>
         </div>
 
@@ -351,13 +351,13 @@
             <!-- Chat Section -->
             <div class="chat-section">
                 <div class="chat-header">
-                    <h3>💬 Chat with Steve</h3>
+                    <h3>Chat with Steve</h3>
                     <p>Your AI Assistant</p>
                 </div>
                 <div class="chat-messages" id="chatMessages">
                     <div class="message steve-message">
                         Hi! I'm Steve, your AI assistant. I can help you turn your ideas into reality! 
-                        What would you like to create today? 🚀
+                        What would you like to create today?
                     </div>
                 </div>
                 <div class="chat-input">
@@ -374,13 +374,13 @@
                 </div>
                 <div class="app-content" id="appContent">
                     <div style="text-align: center; padding: 40px; color: #666;">
-                        <h2>🎯 Complete Workflow Demo</h2>
+                        <h2>Complete Workflow Demo</h2>
                         <p>Experience the full journey from idea to launch:</p>
                         <div style="margin: 30px 0; text-align: left; max-width: 400px; margin: 30px auto;">
-                            <div style="margin: 15px 0;">💡 <strong>Ideation:</strong> Brainstorm your app concept</div>
-                            <div style="margin: 15px 0;">💻 <strong>Vibe Studio:</strong> Generate Streamlit code</div>
-                            <div style="margin: 15px 0;">🎨 <strong>Design:</strong> Create marketing visuals</div>
-                            <div style="margin: 15px 0;">📧 <strong>Gmail:</strong> Draft launch emails</div>
+                            <div style="margin: 15px 0;"><strong>Ideation:</strong> Brainstorm your app concept</div>
+                            <div style="margin: 15px 0;"><strong>Vibe Studio:</strong> Generate Streamlit code</div>
+                            <div style="margin: 15px 0;"><strong>Design:</strong> Create marketing visuals</div>
+                            <div style="margin: 15px 0;"><strong>Gmail:</strong> Draft launch emails</div>
                         </div>
                         <p><strong>Try saying:</strong> "I want to create an app" or "I have an idea for a fitness tracker"</p>
                     </div>
@@ -390,7 +390,7 @@
     </div>
 
     <script>
-        // Global state
+        // Global state - No database dependencies, all in memory
         let currentSessionId = null;
         let currentApp = null;
         let workflowProgress = {
@@ -400,7 +400,7 @@
             gmail: false
         };
 
-        // TODO: Update this to your actual API URL
+        // API Base URL
         const API_BASE = 'http://localhost:8000/api/v1';
 
         // Chat functionality
@@ -419,7 +419,7 @@
             loadingDiv.classList.add('loading');
 
             try {
-                // Send to Steve Connect API
+                // Send to Steve Connect API (no database dependencies)
                 const response = await fetch(`${API_BASE}/chat`, {
                     method: 'POST',
                     headers: {
@@ -440,7 +440,7 @@
                 // Add Steve's response
                 addMessage(data.response, 'steve');
 
-                // Update session ID
+                // Update session ID (stored in memory only)
                 currentSessionId = data.session_id;
 
                 // Handle app opening
@@ -486,22 +486,22 @@
             switch(appName) {
                 case 'ideation':
                     appSection.classList.add('app-ideation');
-                    appTitle.textContent = '💡 Ideation App';
+                    appTitle.textContent = 'Ideation App';
                     appContent.innerHTML = getIdeationInterface();
                     break;
                 case 'vibe_studio':
                     appSection.classList.add('app-vibe-studio');
-                    appTitle.textContent = '💻 Vibe Studio';
+                    appTitle.textContent = 'Vibe Studio';
                     appContent.innerHTML = getVibeStudioInterface();
                     break;
                 case 'design':
                     appSection.classList.add('app-design');
-                    appTitle.textContent = '🎨 Design App';
+                    appTitle.textContent = 'Design App';
                     appContent.innerHTML = getDesignInterface();
                     break;
                 case 'gmail':
                     appSection.classList.add('app-gmail');
-                    appTitle.textContent = '📧 Gmail Integration';
+                    appTitle.textContent = 'Gmail Integration';
                     appContent.innerHTML = getGmailInterface();
                     break;
             }
@@ -523,32 +523,26 @@
                     <label>Select Category:</label>
                     <div class="category-grid">
                         <div class="category-card" onclick="selectCategory('digital_product')">
-                            <div>📱</div>
                             <div>Digital Product</div>
                         </div>
                         <div class="category-card" onclick="selectCategory('finance')">
-                            <div>💰</div>
                             <div>Finance</div>
                         </div>
                         <div class="category-card" onclick="selectCategory('healthcare')">
-                            <div>🏥</div>
                             <div>Healthcare</div>
                         </div>
                         <div class="category-card" onclick="selectCategory('education')">
-                            <div>📚</div>
                             <div>Education</div>
                         </div>
                         <div class="category-card" onclick="selectCategory('entertainment')">
-                            <div>🎮</div>
                             <div>Entertainment</div>
                         </div>
                         <div class="category-card" onclick="selectCategory('travel')">
-                            <div>✈️</div>
                             <div>Travel</div>
                         </div>
                     </div>
                 </div>
-                <button class="btn" onclick="submitIdeation()">💡 Save Idea</button>
+                <button class="btn" onclick="submitIdeation()">Save Idea</button>
             `;
         }
 
@@ -567,7 +561,7 @@
                         <option value="complex">Complex - Full featured app</option>
                     </select>
                 </div>
-                <button class="btn" onclick="generateApp()">💻 Generate App</button>
+                <button class="btn" onclick="generateApp()">Generate App</button>
                 <div id="codeResult"></div>
             `;
         }
@@ -588,7 +582,7 @@
                     <label>Custom Prompt:</label>
                     <textarea id="imagePrompt" rows="3" placeholder="Describe the image you want..."></textarea>
                 </div>
-                <button class="btn" onclick="generateImage()">🎨 Generate Image</button>
+                <button class="btn" onclick="generateImage()">Generate Image</button>
                 <div id="imageResult"></div>
             `;
         }
@@ -614,7 +608,7 @@
                         <option value="students">Students</option>
                     </select>
                 </div>
-                <button class="btn" onclick="generateEmail()">📧 Generate Email</button>
+                <button class="btn" onclick="generateEmail()">Generate Email</button>
                 <div id="emailResult"></div>
             `;
         }
@@ -647,6 +641,7 @@
             };
 
             try {
+                // API call with no database dependencies
                 const response = await fetch(`${API_BASE}/ideation/submit`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -665,7 +660,7 @@
                     workflowProgress.ideation = true;
                     updateProgress();
                     document.getElementById('appContent').innerHTML = `
-                        <div class="success">✅ Ideation completed successfully!</div>
+                        <div class="success">Ideation completed successfully!</div>
                         <div><strong>App Name:</strong> ${appName}</div>
                         <div><strong>Category:</strong> ${selectedCategory}</div>
                         <div><strong>Description:</strong> ${appDescription}</div>
@@ -705,14 +700,14 @@
                     
                     const appData = result.result;
                     resultDiv.innerHTML = `
-                        <div class="success">✅ App generated successfully!</div>
+                        <div class="success">App generated successfully!</div>
                         <div><strong>App Name:</strong> ${appData.app_name}</div>
                         <div><strong>Files Generated:</strong> ${appData.app_structure.total_files}</div>
                         <div><strong>Run Command:</strong> <code>${appData.run_command}</code></div>
                         <div class="download-section">
-                            <h4>📥 Download Options</h4>
-                            <button class="btn btn-download" onclick="downloadProjectFiles('${appData.app_name}')">📥 Download Project ZIP</button>
-                            <button class="btn" onclick="downloadIndividualFile()">📄 Download Individual Files</button>
+                            <h4>Download Options</h4>
+                            <button class="btn btn-download" onclick="downloadProjectFiles('${appData.app_name}')">Download Project ZIP</button>
+                            <button class="btn" onclick="downloadIndividualFile()">Download Individual Files</button>
                         </div>
                         <details>
                             <summary>View Generated Files</summary>
@@ -722,14 +717,14 @@ ${Object.keys(appData.project_files).join('\n')}
                         </details>
                     `;
                     
-                    // Store the project files globally for download
+                    // Store the project files for download (in memory only)
                     window.currentProjectFiles = appData.project_files;
                     window.currentAppName = appData.app_name;
                 } else {
-                    resultDiv.innerHTML = `<div class="error">❌ Failed to generate app: ${result.result.error}</div>`;
+                    resultDiv.innerHTML = `<div class="error">Failed to generate app: ${result.result.error}</div>`;
                 }
             } catch (error) {
-                resultDiv.innerHTML = `<div class="error">❌ Error generating app</div>`;
+                resultDiv.innerHTML = `<div class="error">Error generating app</div>`;
                 console.error('Code generation error:', error);
             }
         }
@@ -742,8 +737,7 @@ ${Object.keys(appData.project_files).join('\n')}
             }
 
             try {
-                // We'll use JSZip library to create the ZIP file
-                // First, let's add the JSZip library via CDN
+                // Use JSZip library to create the ZIP file
                 if (!window.JSZip) {
                     await loadJSZip();
                 }
@@ -771,7 +765,7 @@ ${Object.keys(appData.project_files).join('\n')}
                 // Clean up
                 URL.revokeObjectURL(downloadLink.href);
                 
-                addMessage(`📥 Downloaded ${appName} project files successfully!`, 'steve');
+                addMessage(`Downloaded ${appName} project files successfully!`, 'steve');
                 
             } catch (error) {
                 console.error('Download error:', error);
@@ -802,7 +796,6 @@ ${Object.keys(appData.project_files).join('\n')}
                 return;
             }
 
-            // Create a modal or selection interface for individual files
             const fileList = Object.keys(window.currentProjectFiles);
             const fileSelection = prompt(`Select file to download:\n${fileList.map((file, index) => `${index + 1}. ${file}`).join('\n')}\n\nEnter file number:`);
             
@@ -824,7 +817,7 @@ ${Object.keys(appData.project_files).join('\n')}
                     
                     URL.revokeObjectURL(downloadLink.href);
                     
-                    addMessage(`📄 Downloaded ${fileName} successfully!`, 'steve');
+                    addMessage(`Downloaded ${fileName} successfully!`, 'steve');
                 }
             }
         }
@@ -857,16 +850,16 @@ ${Object.keys(appData.project_files).join('\n')}
                     
                     const imageData = result.result;
                     resultDiv.innerHTML = `
-                        <div class="success">✅ Image generated successfully!</div>
+                        <div class="success">Image generated successfully!</div>
                         <div><strong>Type:</strong> ${imageData.image_type}</div>
                         <div><strong>Model:</strong> ${imageData.model_used}</div>
                         <img src="data:image/png;base64,${imageData.image_data}" style="max-width: 100%; border-radius: 8px; margin-top: 10px;" alt="Generated image">
                     `;
                 } else {
-                    resultDiv.innerHTML = `<div class="error">❌ Failed to generate image</div>`;
+                    resultDiv.innerHTML = `<div class="error">Failed to generate image</div>`;
                 }
             } catch (error) {
-                resultDiv.innerHTML = `<div class="error">❌ Error generating image</div>`;
+                resultDiv.innerHTML = `<div class="error">Error generating image</div>`;
                 console.error('Image generation error:', error);
             }
         }
@@ -899,37 +892,37 @@ ${Object.keys(appData.project_files).join('\n')}
                     
                     const emailData = result.result;
                     resultDiv.innerHTML = `
-                        <div class="success">✅ Email drafted successfully!</div>
+                        <div class="success">Email drafted successfully!</div>
                         <div><strong>Subject:</strong> ${emailData.subject_line}</div>
-                        <div><strong>Type:</strong> ${emailData.email_type}</div>
-                        <div><strong>Predicted Open Rate:</strong> ${emailData.email_metrics.predicted_open_rate}</div>
-                        <details>
-                            <summary>Preview Email</summary>
-                            <div style="border: 1px solid #ddd; padding: 15px; margin-top: 10px; border-radius: 5px; background: white;">
-                                ${emailData.complete_email}
-                            </div>
-                        </details>
-                    `;
-                } else {
-                    resultDiv.innerHTML = `<div class="error">❌ Failed to generate email</div>`;
-                }
-            } catch (error) {
-                resultDiv.innerHTML = `<div class="error">❌ Error generating email</div>`;
-                console.error('Email generation error:', error);
-            }
-        }
+                       <div><strong>Type:</strong> ${emailData.email_type}</div>
+                       <div><strong>Predicted Open Rate:</strong> ${emailData.email_metrics.predicted_open_rate}</div>
+                       <details>
+                           <summary>Preview Email</summary>
+                           <div style="border: 1px solid #ddd; padding: 15px; margin-top: 10px; border-radius: 5px; background: white;">
+                               ${emailData.complete_email}
+                           </div>
+                       </details>
+                   `;
+               } else {
+                   resultDiv.innerHTML = `<div class="error">Failed to generate email</div>`;
+               }
+           } catch (error) {
+               resultDiv.innerHTML = `<div class="error">Error generating email</div>`;
+               console.error('Email generation error:', error);
+           }
+       }
 
-        function updateProgress() {
-            const completed = Object.values(workflowProgress).filter(Boolean).length;
-            const percentage = (completed / 4) * 100;
-            document.getElementById('progressFill').style.width = percentage + '%';
-        }
+       function updateProgress() {
+           const completed = Object.values(workflowProgress).filter(Boolean).length;
+           const percentage = (completed / 4) * 100;
+           document.getElementById('progressFill').style.width = percentage + '%';
+       }
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            addMessage('Welcome to Steve Connect! 🚀', 'steve');
-            addMessage('I can help you create amazing apps. Try saying "I want to create a fitness tracking app" to get started!', 'steve');
-        });
-    </script>
+       // Initialize
+       document.addEventListener('DOMContentLoaded', function() {
+           addMessage('Welcome to Steve Connect!', 'steve');
+           addMessage('I can help you create amazing apps. Try saying "I want to create a fitness tracking app" to get started!', 'steve');
+       });
+   </script>
 </body>
 </html>

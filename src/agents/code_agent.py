@@ -1,4 +1,4 @@
-# src/agents/code_agent.py
+# src/agents/code_agent.py - Simplified without emojis
 """
 Code Generation Agent - Powers Vibe Studio
 Generates Streamlit applications based on user ideas and requirements
@@ -19,11 +19,9 @@ class CodeAgent:
     AI agent for generating Streamlit application code
     """
     
-    # In src/agents/code_agent.py, find the __init__ method and update it:
-    # src/agents/code_agent.py
     def __init__(self):
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",  # 🔧 Latest model
+            model="gemini-2.0-flash",
             temperature=0.2,
             google_api_key=os.getenv("GOOGLE_API_KEY"),
             convert_system_message_to_human=True
@@ -52,7 +50,7 @@ class CodeAgent:
             app_category = app_idea.get("category", "productivity")
             app_description = app_idea.get("description", "A web application")
             
-            print(f"💻 Generating Streamlit app: {app_name} ({app_category})")
+            print(f"Generating Streamlit app: {app_name} ({app_category})")
             
             # Generate main application file
             main_app = await self._generate_main_app(app_name, app_description, app_category, user_requirements)
@@ -88,7 +86,7 @@ class CodeAgent:
             }
             
         except Exception as e:
-            print(f"❌ Error generating Streamlit app: {e}")
+            print(f"Error generating Streamlit app: {e}")
             return {
                 "success": False,
                 "error": str(e),
@@ -238,13 +236,13 @@ class CodeAgent:
         try:
             if complexity == "medium":
                 # Add analytics page
-                additional_files["pages/📊_Analytics.py"] = await self._generate_analytics_page(app_idea)
+                additional_files["pages/Analytics.py"] = await self._generate_analytics_page(app_idea)
                 
             elif complexity == "complex":
                 # Add multiple pages
-                additional_files["pages/📊_Analytics.py"] = await self._generate_analytics_page(app_idea)
-                additional_files["pages/⚙️_Settings.py"] = await self._generate_settings_page(app_idea)
-                additional_files["pages/👤_Profile.py"] = await self._generate_profile_page(app_idea)
+                additional_files["pages/Analytics.py"] = await self._generate_analytics_page(app_idea)
+                additional_files["pages/Settings.py"] = await self._generate_settings_page(app_idea)
+                additional_files["pages/Profile.py"] = await self._generate_profile_page(app_idea)
             
             return additional_files
             
@@ -295,7 +293,7 @@ import streamlit as st
 
 st.set_page_config(page_title="Settings", page_icon="⚙️")
 
-st.title("⚙️ Settings")
+st.title("Settings")
 
 st.sidebar.success("Navigate between pages using the sidebar.")
 
@@ -341,7 +339,7 @@ from datetime import datetime
 
 st.set_page_config(page_title="Profile", page_icon="👤")
 
-st.title("👤 User Profile")
+st.title("User Profile")
 
 st.sidebar.success("Navigate between pages using the sidebar.")
 
@@ -464,14 +462,14 @@ def calculate_growth(current, previous):
         Generate development notes and recommendations
         """
         notes = [
-            f"✅ Generated Streamlit app for {app_idea.get('name', 'your app')}",
-            f"📱 App Category: {app_idea.get('category', 'general')}",
-            f"📁 Generated {len(project_files)} files",
-            "🔧 Run 'pip install -r requirements.txt' to install dependencies",
-            "🚀 Run 'streamlit run app.py' to start the app",
-            "🌐 App will open in your browser at http://localhost:8501",
-            "💡 Customize the app by editing app.py",
-            "📊 Add your own data sources and APIs"
+            f"Generated Streamlit app for {app_idea.get('name', 'your app')}",
+            f"App Category: {app_idea.get('category', 'general')}",
+            f"Generated {len(project_files)} files",
+            "Run 'pip install -r requirements.txt' to install dependencies",
+            "Run 'streamlit run app.py' to start the app",
+            "App will open in your browser at http://localhost:8501",
+            "Customize the app by editing app.py",
+            "Add your own data sources and APIs"
         ]
         
         return notes
@@ -525,7 +523,7 @@ st.set_page_config(
 )
 
 # Main title
-st.title("🚀 {app_name}")
+st.title("{app_name}")
 st.markdown("**{app_category.title()} Application**")
 
 # Sidebar
@@ -543,7 +541,7 @@ with col3:
     st.metric("Revenue", "$12,345", "+8%")
 
 # Sample chart
-st.header("📊 Analytics Dashboard")
+st.header("Analytics Dashboard")
 sample_data = pd.DataFrame({{
     'Date': pd.date_range('2024-01-01', periods=30),
     'Value': np.random.randint(10, 100, 30)
@@ -553,14 +551,14 @@ fig = px.line(sample_data, x='Date', y='Value', title='Sample Data Trend')
 st.plotly_chart(fig, use_container_width=True)
 
 # Interactive section
-st.header("🔧 Interactive Features")
+st.header("Interactive Features")
 user_input = st.text_input("Enter your input:")
 if user_input:
     st.success(f"You entered: {{user_input}}")
 
 # Footer
 st.markdown("---")
-st.markdown("Built with ❤️ using Streamlit | Generated by Steve Connect")
+st.markdown("Built with Streamlit | Generated by Steve Connect")
 """
     
     def _get_fallback_analytics_page(self) -> str:
@@ -573,7 +571,7 @@ import plotly.express as px
 
 st.set_page_config(page_title="Analytics", page_icon="📊")
 
-st.title("📊 Analytics Dashboard")
+st.title("Analytics Dashboard")
 
 # Sample data
 data = pd.DataFrame({
@@ -641,11 +639,3 @@ Deploy to Streamlit Cloud:
             "has_requirements": "requirements.txt" in project_files,
             "has_readme": "README.md" in project_files
         }
-
-# TODO: Future enhancements:
-# - Add database integration templates
-# - Generate authentication boilerplate
-# - Add API integration examples
-# - Generate custom CSS styling
-# - Add deployment configurations
-# - Generate unit tests

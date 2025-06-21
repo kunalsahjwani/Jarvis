@@ -1,7 +1,7 @@
-# src/agents/router_agent.py - Quick fix for SystemMessage issue
+# src/agents/router_agent.py - Simplified without RAG dependencies
 """
 Router Agent - The main orchestrator for Steve Connect
-Uses Gemini Pro for intelligent routing decisions
+Uses Gemini Pro for intelligent routing decisions without RAG
 """
 
 import os
@@ -26,29 +26,48 @@ class RouterAgent:
     Intelligent router agent using Gemini Pro for smart decision making
     """
     
-    # Update all agents to use the newest Gemini model
-# src/agents/router_agent.py
     def __init__(self):
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",  # 🔧 Latest and greatest!
+            model="gemini-2.0-flash",
             temperature=0.2,
             google_api_key=os.getenv("GOOGLE_API_KEY"),
             convert_system_message_to_human=True
         )
+        
+        # Built-in knowledge about apps and routing (no external RAG needed)
+        self.app_knowledge = {
+            "ideation": {
+                "description": "Brainstorm and plan app ideas across categories like Digital Product, Finance, Services, Healthcare, Education, Entertainment, Travel, Food, Technology, Automotive",
+                "triggers": ["create", "new", "idea", "build app", "brainstorm", "plan"]
+            },
+            "vibe_studio": {
+                "description": "Generate actual Streamlit code and build web applications",
+                "triggers": ["build it", "start coding", "develop", "vibe studio", "generate code", "create app"]
+            },
+            "design": {
+                "description": "Create marketing images, logos, and visual content for apps",
+                "triggers": ["marketing", "visuals", "images", "design", "promote", "logo", "graphics"]
+            },
+            "gmail": {
+                "description": "Draft launch emails and marketing campaigns",
+                "triggers": ["launch", "email", "promote", "contact users", "send", "marketing email"]
+            }
+        }
+        
+        self.workflow_sequence = ["ideation", "vibe_studio", "design", "gmail"]
     
-    # ... rest of the code stays exactly the same
     async def route_message(self, 
                           user_message: str, 
                           conversation_history: List[Dict[str, str]] = None,
                           current_app: str = None,
                           context_data: Dict[str, Any] = None) -> Dict[str, Any]:
         """
-        Intelligent routing using Gemini Pro
+        Intelligent routing using Gemini Pro with built-in knowledge
         """
         try:
-            print(f"🤖 Router processing: {user_message}")
-            print(f"📱 Current app: {current_app}")
-            print(f"📜 Context: {context_data}")
+            print(f"Router processing: {user_message}")
+            print(f"Current app: {current_app}")
+            print(f"Context: {context_data}")
             
             # Use AI to make intelligent routing decision
             routing_decision = await self._ai_routing_decision(
@@ -58,12 +77,12 @@ class RouterAgent:
                 context_data or {}
             )
             
-            print(f"🎯 AI Decision: {routing_decision}")
+            print(f"AI Decision: {routing_decision}")
             
             return routing_decision
             
         except Exception as e:
-            print(f"❌ Router agent error: {e}")
+            print(f"Router agent error: {e}")
             return {
                 "response": "I'm here to help! What would you like to work on?",
                 "action": "continue_chat", 
@@ -74,11 +93,14 @@ class RouterAgent:
     
     async def _ai_routing_decision(self, user_message: str, conversation_history: List, current_app: str, context_data: Dict) -> Dict[str, Any]:
         """
-        Use Gemini Pro to make intelligent routing decisions
+        Use Gemini Pro to make intelligent routing decisions with built-in knowledge
         """
         try:
             # Build context about the conversation
             context_summary = self._build_context_summary(conversation_history, current_app, context_data)
+            
+            # Build knowledge context from built-in app knowledge
+            knowledge_context = self._build_knowledge_context()
             
             system_prompt = f"""
 You are Steve, an intelligent AI assistant that helps users build apps through a 4-step workflow:
@@ -89,6 +111,9 @@ You are Steve, an intelligent AI assistant that helps users build apps through a
 
 CURRENT CONTEXT:
 {context_summary}
+
+APP KNOWLEDGE:
+{knowledge_context}
 
 ROUTING RULES:
 - If user wants to "create", "build", "make" a NEW app → Route to IDEATION
@@ -132,17 +157,16 @@ Respond with ONLY this JSON format:
         if current_app:
             summary_parts.append(f"Currently in: {current_app} app")
         
-        if context_data.get("enhanced_knowledge"):
-            summary_parts.append("Has relevant knowledge from previous interactions")
-        
         # Check if user has completed previous steps
         workflow_status = []
         if "ideation" in str(context_data).lower():
-            workflow_status.append("✅ Ideation completed")
+            workflow_status.append("Ideation completed")
         if "vibe_studio" in str(context_data).lower():
-            workflow_status.append("✅ Code generated")
+            workflow_status.append("Code generated")
         if "design" in str(context_data).lower():
-            workflow_status.append("✅ Visuals created")
+            workflow_status.append("Visuals created")
+        if "gmail" in str(context_data).lower():
+            workflow_status.append("Emails drafted")
         
         if workflow_status:
             summary_parts.append(f"Workflow progress: {', '.join(workflow_status)}")
@@ -153,6 +177,20 @@ Respond with ONLY this JSON format:
             summary_parts.append(f"Recent conversation: {recent_messages}")
         
         return " | ".join(summary_parts) if summary_parts else "New conversation"
+    
+    def _build_knowledge_context(self) -> str:
+        """
+        Build knowledge context from built-in app knowledge
+        """
+        knowledge_parts = []
+        
+        for app_name, app_info in self.app_knowledge.items():
+            knowledge_parts.append(f"{app_name.upper()}: {app_info['description']}")
+            knowledge_parts.append(f"Triggers: {', '.join(app_info['triggers'])}")
+        
+        knowledge_parts.append(f"Typical workflow sequence: {' → '.join(self.workflow_sequence)}")
+        
+        return "\n".join(knowledge_parts)
     
     def _parse_ai_response(self, ai_response: str, user_message: str) -> Dict[str, Any]:
         """
@@ -185,39 +223,56 @@ Respond with ONLY this JSON format:
     
     def _fallback_response(self, user_message: str) -> Dict[str, Any]:
         """
-        Fallback routing when AI fails
+        Fallback routing when AI fails - uses simple keyword matching
         """
         message_lower = user_message.lower()
         
-        if any(word in message_lower for word in ["create", "new", "idea", "build app"]):
+        # Check for ideation triggers
+        if any(trigger in message_lower for trigger in self.app_knowledge["ideation"]["triggers"]):
             return {
-                "response": "Great! Let me open the Ideation app to help you brainstorm your ideas. 🚀",
+                "response": "Great! Let me open the Ideation app to help you brainstorm your ideas.",
                 "action": "open_app",
                 "app_to_open": AppType.IDEATION,
                 "confidence": 0.7,
-                "context_data": {}
+                "context_data": {"method": "keyword_fallback"}
             }
-        elif any(word in message_lower for word in ["build it", "start coding", "develop", "vibe studio"]):
+        
+        # Check for vibe studio triggers
+        elif any(trigger in message_lower for trigger in self.app_knowledge["vibe_studio"]["triggers"]):
             return {
-                "response": "Perfect! Opening Vibe Studio to generate your app code. 💻",
+                "response": "Perfect! Opening Vibe Studio to generate your app code.",
                 "action": "open_app", 
                 "app_to_open": AppType.VIBE_STUDIO,
                 "confidence": 0.7,
-                "context_data": {}
+                "context_data": {"method": "keyword_fallback"}
             }
-        elif any(word in message_lower for word in ["design", "image", "visual", "marketing"]):
+        
+        # Check for design triggers
+        elif any(trigger in message_lower for trigger in self.app_knowledge["design"]["triggers"]):
             return {
-                "response": "Excellent! Opening the Design app to create visuals. 🎨",
+                "response": "Excellent! Opening the Design app to create visuals.",
                 "action": "open_app",
                 "app_to_open": AppType.DESIGN,
                 "confidence": 0.7,
-                "context_data": {}
+                "context_data": {"method": "keyword_fallback"}
             }
+        
+        # Check for gmail triggers
+        elif any(trigger in message_lower for trigger in self.app_knowledge["gmail"]["triggers"]):
+            return {
+                "response": "Perfect! Opening Gmail to draft your marketing emails.",
+                "action": "open_app",
+                "app_to_open": AppType.GMAIL,
+                "confidence": 0.7,
+                "context_data": {"method": "keyword_fallback"}
+            }
+        
+        # Default response
         else:
             return {
-                "response": "I'm here to help you create amazing apps! What would you like to work on?",
+                "response": "I'm here to help you create amazing apps! What would you like to work on? You can start with ideation, build code, create designs, or draft emails.",
                 "action": "continue_chat",
                 "app_to_open": AppType.CHAT,
                 "confidence": 0.5,
-                "context_data": {}
+                "context_data": {"method": "default_fallback"}
             }

@@ -1,4 +1,4 @@
-# src/agents/email_agent.py
+# src/agents/email_agent.py - Simplified without emojis
 """
 Email Agent - Powers Gmail integration for Steve Connect
 Generates marketing emails and launch campaigns based on app context
@@ -20,10 +20,9 @@ class EmailAgent:
     AI agent for generating marketing emails and launch campaigns
     """
     
-    # src/agents/eail_agent.py
     def __init__(self):
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",  # 🔧 Latest model
+            model="gemini-2.0-flash",
             temperature=0.4,
             google_api_key=os.getenv("GOOGLE_API_KEY"),
             convert_system_message_to_human=True
@@ -57,7 +56,7 @@ class EmailAgent:
             vibe_studio_context = app_context.get("vibe_studio_data", {})
             design_context = app_context.get("design_data", {})
             
-            print(f"📧 Generating {email_type} email for {app_name}")
+            print(f"Generating {email_type} email for {app_name}")
             
             # Generate email components
             subject_line = await self._generate_subject_line(app_name, app_category, email_type)
@@ -81,7 +80,7 @@ class EmailAgent:
             }
             
         except Exception as e:
-            print(f"❌ Error generating launch email: {e}")
+            print(f"Error generating launch email: {e}")
             return {
                 "success": False,
                 "error": str(e),
@@ -376,27 +375,27 @@ class EmailAgent:
         Get recommendations for when and how to send the email
         """
         base_recommendations = [
-            "📅 Best send time: Tuesday-Thursday, 10 AM - 2 PM",
-            "📱 Ensure mobile optimization (60% of emails opened on mobile)",
-            "✅ A/B test subject lines with small segments first",
-            "📊 Monitor open rates and click-through rates",
+            "Best send time: Tuesday-Thursday, 10 AM - 2 PM",
+            "Ensure mobile optimization (60% of emails opened on mobile)",
+            "A/B test subject lines with small segments first",
+            "Monitor open rates and click-through rates",
         ]
         
         type_specific = {
             "launch": [
-                "🚀 Send launch sequence: Teaser → Launch → Follow-up",
-                "📢 Consider social media coordination",
-                "🎯 Segment audience by engagement level"
+                "Send launch sequence: Teaser → Launch → Follow-up",
+                "Consider social media coordination",
+                "Segment audience by engagement level"
             ],
             "update": [
-                "📈 Highlight most impactful new features",
-                "🔄 Include screenshots or GIFs of changes",
-                "💬 Ask for user feedback"
+                "Highlight most impactful new features",
+                "Include screenshots or GIFs of changes",
+                "Ask for user feedback"
             ],
             "promotion": [
-                "⏰ Create urgency with limited-time offers",
-                "🎁 Highlight exclusive benefits for subscribers",
-                "📋 Include clear terms and conditions"
+                "Create urgency with limited-time offers",
+                "Highlight exclusive benefits for subscribers",
+                "Include clear terms and conditions"
             ]
         }
         
@@ -452,12 +451,3 @@ The {app_name} Team
         except Exception as e:
             print(f"Error generating email variations: {e}")
             return [base_email]
-
-# TODO: Future enhancements:
-# - Integration with actual email APIs (SendGrid, Mailchimp)
-# - Advanced personalization based on user data
-# - Email template library for different industries
-# - Automated email sequence generation
-# - Performance analytics and optimization suggestions
-# - Integration with CRM systems
-# - Dynamic content based on user behavior
