@@ -1,7 +1,7 @@
-# src/agents/router_agent.py - Simplified without RAG dependencies
+# src/agents/router_agent.py - Fully AI-Driven Version
 """
-Router Agent - The main orchestrator for Steve Connect
-Uses Gemini Pro for intelligent routing decisions without RAG
+Router Agent - Fully AI-Driven with Minimal Hardcoding
+Uses Gemini Pro for all routing decisions and intent understanding
 """
 
 import os
@@ -10,6 +10,8 @@ from enum import Enum
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.schema import HumanMessage, SystemMessage
 from dotenv import load_dotenv
+import json
+import re
 
 load_dotenv()
 
@@ -23,256 +25,241 @@ class AppType(str, Enum):
 
 class RouterAgent:
     """
-    Intelligent router agent using Gemini Pro for smart decision making
+    Fully AI-driven intelligent router agent
     """
     
     def __init__(self):
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.0-flash",
-            temperature=0.2,
+            temperature=0.3,  # Slightly higher for more natural responses
             google_api_key=os.getenv("GOOGLE_API_KEY"),
             convert_system_message_to_human=True
         )
         
-        # Built-in knowledge about apps and routing (no external RAG needed)
-        self.app_knowledge = {
-            "ideation": {
-                "description": "Brainstorm and plan app ideas across categories like Digital Product, Finance, Services, Healthcare, Education, Entertainment, Travel, Food, Technology, Automotive",
-                "triggers": ["create", "new", "idea", "build app", "brainstorm", "plan"]
-            },
-            "vibe_studio": {
-                "description": "Generate actual Streamlit code and build web applications",
-                "triggers": ["build it", "start coding", "develop", "vibe studio", "generate code", "create app"]
-            },
-            "design": {
-                "description": "Create marketing images, logos, and visual content for apps",
-                "triggers": ["marketing", "visuals", "images", "design", "promote", "logo", "graphics"]
-            },
-            "gmail": {
-                "description": "Draft launch emails and marketing campaigns",
-                "triggers": ["launch", "email", "promote", "contact users", "send", "marketing email"]
-            }
-        }
+        # Minimal hardcoded data - just app descriptions for AI context
+        self.ecosystem_description = """
+        Steve Connect Ecosystem:
+        - IDEATION: Brainstorm and plan app concepts across any category
+        - VIBE_STUDIO: Generate actual Streamlit code and applications  
+        - DESIGN: Create marketing images, logos, and visual content
+        - GMAIL: Draft launch emails and marketing campaigns
         
-        self.workflow_sequence = ["ideation", "vibe_studio", "design", "gmail"]
+        Typical workflow: Ideation → Vibe Studio → Design → Gmail (but flexible based on user needs)
+        """
+        
+        # Session-based context tracking (only for memory)
+        self.session_contexts = {}
     
     async def route_message(self, 
                           user_message: str, 
                           conversation_history: List[Dict[str, str]] = None,
                           current_app: str = None,
-                          context_data: Dict[str, Any] = None) -> Dict[str, Any]:
+                          context_data: Dict[str, Any] = None,
+                          session_id: str = None) -> Dict[str, Any]:
         """
-        Intelligent routing using Gemini Pro with built-in knowledge
+        Fully AI-driven routing - no hardcoded rules
         """
         try:
-            print(f"Router processing: {user_message}")
-            print(f"Current app: {current_app}")
-            print(f"Context: {context_data}")
+            print(f"AI Router processing: {user_message}")
             
-            # Use AI to make intelligent routing decision
-            routing_decision = await self._ai_routing_decision(
+            # Initialize session context if needed
+            if session_id and session_id not in self.session_contexts:
+                self.session_contexts[session_id] = {}
+            
+            # Let AI handle everything - build comprehensive context
+            full_context = self._build_ai_context(
                 user_message, 
                 conversation_history or [], 
-                current_app,
-                context_data or {}
+                current_app, 
+                context_data or {},
+                session_id
             )
             
-            print(f"AI Decision: {routing_decision}")
+            # Single AI call handles all routing logic
+            routing_decision = await self._ai_comprehensive_routing(full_context)
+            
+            # Store any AI insights for next interaction
+            if session_id:
+                self.session_contexts[session_id]["last_ai_decision"] = routing_decision
             
             return routing_decision
             
         except Exception as e:
-            print(f"Router agent error: {e}")
-            return {
-                "response": "I'm here to help! What would you like to work on?",
-                "action": "continue_chat", 
-                "app_to_open": AppType.CHAT,
-                "confidence": 0.0,
-                "context_data": {}
-            }
+            print(f"AI Router error: {e}")
+            # Even error handling is AI-driven
+            return await self._ai_error_recovery(user_message, str(e))
     
-    async def _ai_routing_decision(self, user_message: str, conversation_history: List, current_app: str, context_data: Dict) -> Dict[str, Any]:
+    def _build_ai_context(self, user_message: str, conversation_history: List, 
+                         current_app: str, context_data: Dict, session_id: str) -> Dict[str, Any]:
         """
-        Use Gemini Pro to make intelligent routing decisions with built-in knowledge
+        Build comprehensive context for AI to analyze
+        """
+        return {
+            "user_message": user_message,
+            "conversation_history": conversation_history[-5:] if conversation_history else [],  # Last 5 for context
+            "current_app": current_app,
+            "context_data": context_data,
+            "session_id": session_id,
+            "ecosystem_info": self.ecosystem_description,
+            "previous_ai_decision": self.session_contexts.get(session_id, {}).get("last_ai_decision")
+        }
+    
+    async def _ai_comprehensive_routing(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Single AI call that handles all routing intelligence
         """
         try:
-            # Build context about the conversation
-            context_summary = self._build_context_summary(conversation_history, current_app, context_data)
-            
-            # Build knowledge context from built-in app knowledge
-            knowledge_context = self._build_knowledge_context()
-            
             system_prompt = f"""
-You are Steve, an intelligent AI assistant that helps users build apps through a 4-step workflow:
-1. IDEATION: Brainstorm and plan app ideas
-2. VIBE_STUDIO: Generate actual Streamlit code 
-3. DESIGN: Create marketing images and visuals
-4. GMAIL: Draft launch emails
+You are Steve, an advanced AI assistant for the Steve Connect ecosystem. You have COMPLETE INTELLIGENCE to:
 
-CURRENT CONTEXT:
-{context_summary}
+1. Understand user intent (no keyword matching - pure language understanding)
+2. Track conversation context and workflow state
+3. Make smart routing decisions
+4. Generate natural, contextual responses
+5. Handle confirmations, questions, and complex requests
 
-APP KNOWLEDGE:
-{knowledge_context}
+ECOSYSTEM INFO:
+{context['ecosystem_info']}
 
-ROUTING RULES:
-- If user wants to "create", "build", "make" a NEW app → Route to IDEATION
-- If user has completed ideation and wants to "build it", "start coding", "develop" → Route to VIBE_STUDIO  
-- If user has an app and wants "marketing", "visuals", "images", "design" → Route to DESIGN
-- If user wants to "launch", "email", "promote", "contact users" → Route to GMAIL
-- If user is just chatting or asking questions → Continue conversation
+CURRENT SITUATION:
+- User Message: "{context['user_message']}"
+- Current App: {context['current_app']}
+- Conversation History: {context['conversation_history']}
+- App Data/Progress: {context['context_data']}
+- Previous Decision: {context.get('previous_ai_decision')}
 
-USER MESSAGE: "{user_message}"
+CRITICAL INTELLIGENCE RULES:
+✓ Understanding "yes/ok/sure/lets move on" means user agrees with your last suggestion
+✓ When user says ambiguous "yes" or "move on", use WORKFLOW LOGIC:
+  - After Ideation completed → Open Vibe Studio
+  - After Vibe Studio completed → Open Design app  
+  - After Design completed → Open Gmail
+✓ NEVER ask the same question repeatedly - if user is ambiguous, make smart default choice
+✓ When user asks about "my idea/app" reference their specific app details from context
+✓ BREAK REPETITIVE LOOPS - if you've asked a question 2+ times, just take action
+✓ Default to NEXT WORKFLOW STEP when user confirms but is unclear
 
-Respond with ONLY this JSON format:
+ANTI-PATTERNS TO AVOID:
+❌ Asking "Would you like X or Y?" repeatedly when user already said "yes"
+❌ Getting stuck in conversation loops
+❌ Being indecisive when user gives clear intent to "move forward"
+❌ Asking for clarification on obvious workflow progressions
+
+ROUTING OPTIONS:
+- "open_app" + app_name: Open specific app (ideation/vibe_studio/design/gmail)
+- "continue_chat": Keep conversation going with helpful response
+
+WORKFLOW INTELLIGENCE:
+If user completed Vibe Studio and says "move on/yes/sure" → Default to Design app
+If user completed Design and says "move on/yes/sure" → Default to Gmail  
+If user completed Ideation and says "move on/yes/sure" → Default to Vibe Studio
+
+RESPONSE FORMAT (JSON only):
 {{
-    "action": "open_app" or "continue_chat",
-    "app_to_open": "ideation" or "vibe_studio" or "design" or "gmail" or "chat",
-    "response": "Your helpful response to the user",
+    "action": "open_app" | "continue_chat",
+    "app_to_open": "ideation" | "vibe_studio" | "design" | "gmail" | "chat",
+    "response": "Your intelligent, decisive response that takes action",
     "confidence": 0.0-1.0,
-    "reasoning": "Brief explanation of your decision"
+    "reasoning": "Your thought process - why you chose this action",
+    "context_understanding": "What you understand about user's current situation"
 }}
 """
             
             messages = [
                 SystemMessage(content=system_prompt),
+                HumanMessage(content=f"Route this intelligently: {context['user_message']}")
+            ]
+            
+            response = await self.llm.ainvoke(messages)
+            
+            # Parse AI response
+            return await self._parse_ai_response(response.content, context['user_message'])
+            
+        except Exception as e:
+            print(f"AI routing error: {e}")
+            return await self._ai_error_recovery(context['user_message'], str(e))
+    
+    async def _parse_ai_response(self, ai_response: str, user_message: str) -> Dict[str, Any]:
+        """
+        Parse AI response with error handling
+        """
+        try:
+            # Extract JSON from AI response
+            json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
+            if json_match:
+                response_data = json.loads(json_match.group())
+                
+                # Validate required fields
+                required_fields = ["action", "response"]
+                if all(field in response_data for field in required_fields):
+                    return {
+                        "response": response_data["response"],
+                        "action": response_data["action"],
+                        "app_to_open": response_data.get("app_to_open", "chat"),
+                        "confidence": float(response_data.get("confidence", 0.8)),
+                        "context_data": {
+                            "reasoning": response_data.get("reasoning", ""),
+                            "ai_understanding": response_data.get("context_understanding", ""),
+                            "method": "ai_driven"
+                        }
+                    }
+            
+            # If JSON parsing fails, try AI recovery
+            return await self._ai_error_recovery(user_message, "JSON parsing failed")
+            
+        except json.JSONDecodeError as e:
+            return await self._ai_error_recovery(user_message, f"JSON decode error: {e}")
+        except Exception as e:
+            return await self._ai_error_recovery(user_message, f"Parse error: {e}")
+    
+    async def _ai_error_recovery(self, user_message: str, error_details: str) -> Dict[str, Any]:
+        """
+        AI-driven error recovery instead of hardcoded fallbacks
+        """
+        try:
+            recovery_prompt = f"""
+The main routing AI encountered an error: {error_details}
+
+User message was: "{user_message}"
+
+As backup AI, provide a helpful response and basic routing decision.
+Be helpful and acknowledge you're here to assist with app creation.
+
+Respond with simple JSON:
+{{
+    "response": "Helpful response to user",
+    "action": "continue_chat",
+    "app_to_open": "chat"
+}}
+"""
+            
+            messages = [
+                SystemMessage(content=recovery_prompt),
                 HumanMessage(content=user_message)
             ]
             
             response = await self.llm.ainvoke(messages)
             
-            # Parse the AI response
-            return self._parse_ai_response(response.content, user_message)
-            
-        except Exception as e:
-            print(f"AI routing error: {e}")
-            return self._fallback_response(user_message)
-    
-    def _build_context_summary(self, conversation_history: List, current_app: str, context_data: Dict) -> str:
-        """
-        Build a summary of the current conversation context
-        """
-        summary_parts = []
-        
-        if current_app:
-            summary_parts.append(f"Currently in: {current_app} app")
-        
-        # Check if user has completed previous steps
-        workflow_status = []
-        if "ideation" in str(context_data).lower():
-            workflow_status.append("Ideation completed")
-        if "vibe_studio" in str(context_data).lower():
-            workflow_status.append("Code generated")
-        if "design" in str(context_data).lower():
-            workflow_status.append("Visuals created")
-        if "gmail" in str(context_data).lower():
-            workflow_status.append("Emails drafted")
-        
-        if workflow_status:
-            summary_parts.append(f"Workflow progress: {', '.join(workflow_status)}")
-        
-        # Add recent conversation context
-        if conversation_history:
-            recent_messages = conversation_history[-3:]  # Last 3 messages
-            summary_parts.append(f"Recent conversation: {recent_messages}")
-        
-        return " | ".join(summary_parts) if summary_parts else "New conversation"
-    
-    def _build_knowledge_context(self) -> str:
-        """
-        Build knowledge context from built-in app knowledge
-        """
-        knowledge_parts = []
-        
-        for app_name, app_info in self.app_knowledge.items():
-            knowledge_parts.append(f"{app_name.upper()}: {app_info['description']}")
-            knowledge_parts.append(f"Triggers: {', '.join(app_info['triggers'])}")
-        
-        knowledge_parts.append(f"Typical workflow sequence: {' → '.join(self.workflow_sequence)}")
-        
-        return "\n".join(knowledge_parts)
-    
-    def _parse_ai_response(self, ai_response: str, user_message: str) -> Dict[str, Any]:
-        """
-        Parse the AI response and extract routing decision
-        """
-        try:
-            # Try to extract JSON from the response
-            import json
-            import re
-            
-            # Look for JSON in the response
-            json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
+            # Simple JSON extraction for recovery
+            json_match = re.search(r'\{.*\}', response.content, re.DOTALL)
             if json_match:
-                response_data = json.loads(json_match.group())
-                
+                recovery_data = json.loads(json_match.group())
                 return {
-                    "response": response_data.get("response", "Let me help you with that!"),
-                    "action": response_data.get("action", "continue_chat"),
-                    "app_to_open": response_data.get("app_to_open", "chat"),
-                    "confidence": float(response_data.get("confidence", 0.8)),
-                    "context_data": {"reasoning": response_data.get("reasoning", "")}
+                    "response": recovery_data.get("response", "I'm here to help! What would you like to work on?"),
+                    "action": "continue_chat",
+                    "app_to_open": "chat",
+                    "confidence": 0.6,
+                    "context_data": {"method": "ai_recovery", "error": error_details}
                 }
             
-            # Fallback if JSON parsing fails
-            return self._fallback_response(user_message)
-            
-        except Exception as e:
-            print(f"Error parsing AI response: {e}")
-            return self._fallback_response(user_message)
-    
-    def _fallback_response(self, user_message: str) -> Dict[str, Any]:
-        """
-        Fallback routing when AI fails - uses simple keyword matching
-        """
-        message_lower = user_message.lower()
+        except Exception as recovery_error:
+            print(f"AI recovery also failed: {recovery_error}")
         
-        # Check for ideation triggers
-        if any(trigger in message_lower for trigger in self.app_knowledge["ideation"]["triggers"]):
-            return {
-                "response": "Great! Let me open the Ideation app to help you brainstorm your ideas.",
-                "action": "open_app",
-                "app_to_open": AppType.IDEATION,
-                "confidence": 0.7,
-                "context_data": {"method": "keyword_fallback"}
-            }
-        
-        # Check for vibe studio triggers
-        elif any(trigger in message_lower for trigger in self.app_knowledge["vibe_studio"]["triggers"]):
-            return {
-                "response": "Perfect! Opening Vibe Studio to generate your app code.",
-                "action": "open_app", 
-                "app_to_open": AppType.VIBE_STUDIO,
-                "confidence": 0.7,
-                "context_data": {"method": "keyword_fallback"}
-            }
-        
-        # Check for design triggers
-        elif any(trigger in message_lower for trigger in self.app_knowledge["design"]["triggers"]):
-            return {
-                "response": "Excellent! Opening the Design app to create visuals.",
-                "action": "open_app",
-                "app_to_open": AppType.DESIGN,
-                "confidence": 0.7,
-                "context_data": {"method": "keyword_fallback"}
-            }
-        
-        # Check for gmail triggers
-        elif any(trigger in message_lower for trigger in self.app_knowledge["gmail"]["triggers"]):
-            return {
-                "response": "Perfect! Opening Gmail to draft your marketing emails.",
-                "action": "open_app",
-                "app_to_open": AppType.GMAIL,
-                "confidence": 0.7,
-                "context_data": {"method": "keyword_fallback"}
-            }
-        
-        # Default response
-        else:
-            return {
-                "response": "I'm here to help you create amazing apps! What would you like to work on? You can start with ideation, build code, create designs, or draft emails.",
-                "action": "continue_chat",
-                "app_to_open": AppType.CHAT,
-                "confidence": 0.5,
-                "context_data": {"method": "default_fallback"}
-            }
+        # Last resort fallback
+        return {
+            "response": "I'm Steve, your AI assistant! I'm here to help you create amazing apps. What would you like to build?",
+            "action": "continue_chat",
+            "app_to_open": "chat",
+            "confidence": 0.5,
+            "context_data": {"method": "emergency_fallback"}
+        }

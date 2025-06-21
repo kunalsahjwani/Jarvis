@@ -75,12 +75,13 @@ async def chat_with_steve(message: ChatMessage):
         # Add current message to history
         conversation_history.append({"user": message.message})
         
-        # Route the message using Router Agent
+        # Route the message using Router Agent - NOW WITH SESSION_ID
         routing_result = await router_agent.route_message(
             user_message=message.message,
             conversation_history=conversation_history,
             current_app=current_app,
-            context_data=session_context.get("app_data", {})
+            context_data=session_context.get("app_data", {}),
+            session_id=session_id  # ADD THIS LINE
         )
         
         # Update session storage
