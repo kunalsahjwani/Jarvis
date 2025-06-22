@@ -1,7 +1,7 @@
-# src/api/routes.py - Simplified without database dependencies
+# src/api/routes.py - Enhanced with cross-app context sharing
 """
-FastAPI routes for Steve Connect - No Database Version
-Handles all API endpoints for the orchestrator system
+FastAPI routes for Steve Connect - Enhanced Version
+Handles all API endpoints with proper context sharing between apps
 """
 
 from fastapi import APIRouter, HTTPException, status
@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import uuid
+import re
 
 # Import our agents (no database imports)
 from src.agents.router_agent import RouterAgent
@@ -48,6 +49,68 @@ class AppAction(BaseModel):
     session_id: str
     data: Optional[Dict[str, Any]] = None
 
+# Helper functions for context extraction
+def _extract_app_name_from_text(text: str) -> str:
+    """Extract app name from user requirements text"""
+    if not text:
+        return "MyApp"
+    
+    # Look for common patterns like "app called X" or "X app"
+    patterns = [
+        r'(?:app (?:called|named)\s+)([a-zA-Z]\w+)',
+        r'([a-zA-Z]\w+)(?:\s+app)',
+        r'(?:called|named)\s+([a-zA-Z]\w+)',
+        r'^([a-zA-Z]\w+)'  # First word if nothing else matches
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            app_name = match.group(1).strip()
+            if len(app_name) > 1:  # Avoid single letters
+                return app_name.title()
+    
+    # Fallback: take first meaningful word
+    words = text.strip().split()
+    if words:
+        first_word = re.sub(r'[^\w]', '', words[0])
+        if len(first_word) > 1:
+            return first_word.title()
+    
+    return "MyApp"
+
+def _extract_app_category_from_text(text: str) -> str:
+    """Extract likely app category from user requirements"""
+    text_lower = text.lower()
+    
+    category_keywords = {
+        "education": ["learn", "student", "teach", "education", "course", "study", "professor", "research"],
+        "healthcare": ["health", "fitness", "medical", "doctor", "exercise", "workout"],
+        "finance": ["money", "budget", "payment", "bank", "finance", "investment"],
+        "entertainment": ["game", "fun", "entertainment", "music", "video"],
+        "travel": ["travel", "trip", "vacation", "hotel", "flight"],
+        "food": ["food", "recipe", "restaurant", "cooking", "meal"],
+        "technology": ["tech", "software", "code", "data", "api"],
+        "services": ["service", "booking", "appointment", "schedule"],
+        "digital_product": ["product", "shop", "store", "sell", "buy"]
+    }
+    
+    for category, keywords in category_keywords.items():
+        if any(keyword in text_lower for keyword in keywords):
+            return category
+    
+    return "application"  # Default category
+
+def _ensure_session_structure(session_id: str):
+    """Ensure session has proper structure"""
+    if session_id not in session_storage:
+        session_storage[session_id] = {
+            "user_id": "default_user",
+            "conversation_history": [],
+            "current_app": None,
+            "app_data": {}
+        }
+
 # Main chat endpoint - The heart of Steve Connect
 @router.post("/chat", response_model=ChatResponse)
 async def chat_with_steve(message: ChatMessage):
@@ -60,12 +123,8 @@ async def chat_with_steve(message: ChatMessage):
         session_id = message.session_id
         if not session_id:
             session_id = str(uuid.uuid4())
-            session_storage[session_id] = {
-                "user_id": message.user_id,
-                "conversation_history": [],
-                "current_app": None,
-                "app_data": {}
-            }
+        
+        _ensure_session_structure(session_id)
         
         # Get current session context
         session_context = session_storage.get(session_id, {})
@@ -75,13 +134,13 @@ async def chat_with_steve(message: ChatMessage):
         # Add current message to history
         conversation_history.append({"user": message.message})
         
-        # Route the message using Router Agent - NOW WITH SESSION_ID
+        # Route the message using Router Agent
         routing_result = await router_agent.route_message(
             user_message=message.message,
             conversation_history=conversation_history,
             current_app=current_app,
             context_data=session_context.get("app_data", {}),
-            session_id=session_id  # ADD THIS LINE
+            session_id=session_id
         )
         
         # Update session storage
@@ -115,9 +174,10 @@ async def submit_ideation_data(action: AppAction):
         session_id = action.session_id
         ideation_data = action.data
         
+        _ensure_session_structure(session_id)
+        
         # Save ideation context in memory
-        if session_id in session_storage:
-            session_storage[session_id]["app_data"]["ideation"] = ideation_data
+        session_storage[session_id]["app_data"]["ideation"] = ideation_data
         
         return JSONResponse({
             "status": "success",
@@ -136,46 +196,67 @@ async def submit_ideation_data(action: AppAction):
 async def generate_app_code(action: AppAction):
     """
     Generate Streamlit app code using Vibe Studio
+    NOW WITH PROPER CONTEXT EXTRACTION AND SHARING
     """
     try:
         session_id = action.session_id
         user_requirements = action.data.get("requirements", "")
-        complexity = action.data.get("complexity", "simple")
         
-        # Get ideation context from memory
+        
+        _ensure_session_structure(session_id)
+        
+        # Get existing ideation context from memory
         session_data = session_storage.get(session_id, {})
         ideation_data = session_data.get("app_data", {}).get("ideation", {})
         
+        # 🔥 KEY FIX: If no ideation data exists, extract it from user input and SAVE IT
         if not ideation_data:
-            return JSONResponse({
-                "status": "error",
-                "message": "No ideation data found. Please complete ideation first."
-            })
+            print(f"🔧 No ideation data found, extracting from user input: {user_requirements}")
+            
+            # Extract app information from user requirements
+            extracted_app_name = _extract_app_name_from_text(user_requirements)
+            extracted_category = _extract_app_category_from_text(user_requirements)
+            
+            # Create ideation data from extracted information
+            ideation_data = {
+                "name": extracted_app_name,
+                "category": extracted_category,
+                "description": user_requirements or f"{extracted_app_name} application"
+            }
+            
+            # 🔥 CRITICAL: Save the extracted ideation data to session for chat system
+            session_storage[session_id]["app_data"]["ideation"] = ideation_data
+            
+            print(f"✅ Extracted and saved app context: {ideation_data}")
+        else:
+            print(f"✅ Using existing ideation data: {ideation_data}")
         
         # Generate the Streamlit app
         generation_result = await code_agent.generate_streamlit_app(
             app_idea=ideation_data,
-            user_requirements=user_requirements,
-            complexity_level=complexity
+            user_requirements=user_requirements
         )
         
         if generation_result["success"]:
             # Save the generated app context in memory
-            if session_id in session_storage:
-                session_storage[session_id]["app_data"]["vibe_studio"] = {
-                    "app_name": generation_result["app_name"],
-                    "project_files": generation_result["project_files"],
-                    "app_structure": generation_result["app_structure"],
-                    "complexity": complexity
-                }
+            session_storage[session_id]["app_data"]["vibe_studio"] = {
+                "app_name": generation_result["app_name"],
+                "project_files": generation_result["project_files"],
+                "app_structure": generation_result["app_structure"],
+                "user_requirements": user_requirements
+            }
+            
+            print(f"✅ Saved Vibe Studio context for session {session_id}")
         
         return JSONResponse({
             "status": "success" if generation_result["success"] else "error",
             "result": generation_result,
-            "next_suggestion": "Great! Your app is ready. Want to create marketing materials? I can open the Design app!"
+            "next_suggestion": "Great! Your app is ready. Want to create marketing materials? I can open the Design app!",
+            "extracted_context": ideation_data  # Show what was extracted
         })
         
     except Exception as e:
+        print(f"❌ Error in vibe-studio route: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"App generation failed: {str(e)}"
@@ -184,19 +265,44 @@ async def generate_app_code(action: AppAction):
 @router.post("/design/generate-image")
 async def generate_marketing_image(action: AppAction):
     """
-    Generate marketing images using Leonardo Agent (Hugging Face)
+    Generate marketing images using Leonardo Agent
     """
     try:
         session_id = action.session_id
         user_prompt = action.data.get("prompt", "")
         image_type = action.data.get("image_type", "marketing")
+        context = action.data.get("context", "")  # For direct usage
         
-        # Get context from memory
+        _ensure_session_structure(session_id)
+        
+        # Get context from memory - try multiple sources
         session_data = session_storage.get(session_id, {})
         ideation_data = session_data.get("app_data", {}).get("ideation", {})
         
+        # If no ideation data but user provided context, extract it
+        if not ideation_data and context:
+            print(f"🔧 No ideation data, extracting from design context: {context}")
+            
+            extracted_app_name = _extract_app_name_from_text(context)
+            extracted_category = _extract_app_category_from_text(context)
+            
+            ideation_data = {
+                "name": extracted_app_name,
+                "category": extracted_category,
+                "description": context
+            }
+            
+            # Save extracted context
+            session_storage[session_id]["app_data"]["ideation"] = ideation_data
+            print(f"✅ Extracted and saved design context: {ideation_data}")
+        
+        # Fallback to generic data if still no context
         if not ideation_data:
-            ideation_data = {"category": "technology", "description": "mobile application"}
+            ideation_data = {
+                "name": "Application",
+                "category": "technology", 
+                "description": "mobile application"
+            }
         
         # Generate the image
         image_result = await leonardo_agent.generate_marketing_image(
@@ -207,18 +313,19 @@ async def generate_marketing_image(action: AppAction):
         
         if image_result["success"]:
             # Save the design context in memory
-            if session_id in session_storage:
-                session_storage[session_id]["app_data"]["design"] = {
-                    "image_type": image_type,
-                    "user_prompt": user_prompt,
-                    "image_generated": True,
-                    "image_metadata": image_result.get("metadata", {})
-                }
+            session_storage[session_id]["app_data"]["design"] = {
+                "image_type": image_type,
+                "user_prompt": user_prompt,
+                "context_used": context,
+                "image_generated": True,
+                "image_metadata": image_result.get("metadata", {})
+            }
         
         return JSONResponse({
             "status": "success" if image_result["success"] else "error",
             "result": image_result,
-            "next_suggestion": "Perfect! Your marketing materials are ready. Ready to launch? I can help you draft emails!"
+            "next_suggestion": "Perfect! Your marketing materials are ready. Ready to launch? I can help you draft emails!",
+            "context_used": ideation_data
         })
         
     except Exception as e:
@@ -236,6 +343,9 @@ async def draft_marketing_email(action: AppAction):
         session_id = action.session_id
         email_type = action.data.get("email_type", "launch")
         target_audience = action.data.get("target_audience", "general")
+        context = action.data.get("context", "")  # For direct usage
+        
+        _ensure_session_structure(session_id)
         
         # Get full context from memory
         session_data = session_storage.get(session_id, {})
@@ -257,6 +367,31 @@ async def draft_marketing_email(action: AppAction):
                 "app_description": ideation.get("description", app_context["app_description"]),
                 "ideation_data": ideation
             })
+        elif context:
+            # If no ideation data but user provided context, extract it
+            print(f"🔧 No ideation data, extracting from email context: {context}")
+            
+            extracted_app_name = _extract_app_name_from_text(context)
+            extracted_category = _extract_app_category_from_text(context)
+            
+            ideation_data = {
+                "name": extracted_app_name,
+                "category": extracted_category,
+                "description": context
+            }
+            
+            # Save extracted context
+            session_storage[session_id]["app_data"]["ideation"] = ideation_data
+            
+            # Update app_context
+            app_context.update({
+                "app_name": extracted_app_name,
+                "app_category": extracted_category,
+                "app_description": context,
+                "ideation_data": ideation_data
+            })
+            
+            print(f"✅ Extracted and saved email context: {ideation_data}")
         
         if "vibe_studio" in app_data:
             app_context["vibe_studio_data"] = app_data["vibe_studio"]
@@ -273,18 +408,19 @@ async def draft_marketing_email(action: AppAction):
         
         if email_result["success"]:
             # Save the email context in memory
-            if session_id in session_storage:
-                session_storage[session_id]["app_data"]["gmail"] = {
-                    "email_type": email_type,
-                    "target_audience": target_audience,
-                    "email_generated": True,
-                    "subject_line": email_result["subject_line"]
-                }
+            session_storage[session_id]["app_data"]["gmail"] = {
+                "email_type": email_type,
+                "target_audience": target_audience,
+                "context_used": context,
+                "email_generated": True,
+                "subject_line": email_result["subject_line"]
+            }
         
         return JSONResponse({
             "status": "success" if email_result["success"] else "error",
             "result": email_result,
-            "next_suggestion": "Excellent! Your launch email is ready. You've completed the full workflow from idea to launch!"
+            "next_suggestion": "Excellent! Your launch email is ready. You've completed the full workflow from idea to launch!",
+            "context_used": app_context
         })
         
     except Exception as e:
@@ -359,7 +495,8 @@ async def check_agents_health():
         return JSONResponse({
             "overall_status": "healthy",
             "agents": health_status,
-            "session_count": len(session_storage)
+            "session_count": len(session_storage),
+            "active_sessions": list(session_storage.keys())[-5:]  # Show last 5 sessions
         })
         
     except Exception as e:
@@ -376,15 +513,16 @@ def _analyze_workflow_progress(context: Dict[str, Any]) -> Dict[str, Any]:
     app_data = context.get("app_data", {})
     
     progress = {
-        "ideation_complete": "ideation" in app_data,
-        "vibe_studio_complete": "vibe_studio" in app_data,
-        "design_complete": "design" in app_data,
-        "gmail_complete": "gmail" in app_data,
+        "ideation_complete": "ideation" in app_data and bool(app_data["ideation"]),
+        "vibe_studio_complete": "vibe_studio" in app_data and bool(app_data["vibe_studio"]),
+        "design_complete": "design" in app_data and bool(app_data["design"]),
+        "gmail_complete": "gmail" in app_data and bool(app_data["gmail"]),
     }
     
     completed_steps = sum(progress.values())
     progress["completion_percentage"] = (completed_steps / 4) * 100
     progress["next_recommended_step"] = _get_next_step(progress)
+    progress["current_app_context"] = app_data.get("ideation", {})
     
     return progress
 
@@ -401,4 +539,4 @@ def _get_next_step(progress: Dict[str, Any]) -> str:
     elif not progress["gmail_complete"]:
         return "Draft launch emails with Gmail integration"
     else:
-        return "Workflow complete! Your app is ready to launch."
+        return "Workflow complete! Your app is ready to launch!"

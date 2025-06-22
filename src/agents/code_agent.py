@@ -1,8 +1,11 @@
-# src/agents/code_agent.py - Simplified without emojis
+# To use the fine tuned model, just uncomment the fine tuned model code below. I have finetuned Qwen 2.5 coder for generating streamlit code
+
 """
-Code Generation Agent - Powers Vibe Studio
-Generates Streamlit applications based on user ideas and requirements
-Uses Gemini Pro for high-quality code generation
+Code Generation Agent with dual strategy:
+1. Primary: Google Gemini (fast, reliable)
+2. Fallback: Your fine-tuned model (specialized) - Currently commented out
+3. Fail cleanly if both fail
+4. SIMPLIFIED: Always generates simple, focused apps
 """
 
 import os
@@ -10,69 +13,119 @@ import re
 from typing import Dict, Any, List, Optional
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.schema import SystemMessage, HumanMessage
+# from transformers import AutoTokenizer, AutoModelForCausalLM  # Commented out - uncomment to use fine-tuned model
+# from peft import PeftModel  # Commented out - uncomment to use fine-tuned model
+# import torch  # Commented out - uncomment to use fine-tuned model
 from dotenv import load_dotenv
 
 load_dotenv()
 
 class CodeAgent:
     """
-    AI agent for generating Streamlit application code
+    AI agent with Gemini primary + fine-tuned model fallback
+    Always generates simple, focused Streamlit apps
     """
     
     def __init__(self):
-        self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",
-            temperature=0.2,
-            google_api_key=os.getenv("GOOGLE_API_KEY"),
-            convert_system_message_to_human=True
-        )
+        print("🤖 Initializing Code Agent with dual strategy...")
         
-        # Streamlit project structure template
+        # Initialize Gemini (primary)
+        try:
+            self.llm = ChatGoogleGenerativeAI(
+                model="gemini-2.0-flash",
+                temperature=0.2,
+                google_api_key=os.getenv("GOOGLE_API_KEY"),
+                convert_system_message_to_human=True
+            )
+            print("✅ Gemini initialized (primary)")
+            self.gemini_available = True
+        except Exception as e:
+            print(f"⚠️ Gemini initialization failed: {e}")
+            self.gemini_available = False
+        
+        # Initialize your fine-tuned model (fallback) - COMMENTED OUT FOR GPU REASONS
+        # Uncomment the code below to enable fine-tuned model fallback
+        self.finetuned_model = None
+        self.finetuned_tokenizer = None
+        self.finetuned_available = False  # Set to False when commented out
+        
+        # try:
+        #     print("🔧 Loading your fine-tuned model (fallback)...")
+        #     self.finetuned_tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-Coder-1.5B-Instruct")
+        #     if self.finetuned_tokenizer.pad_token is None:
+        #         self.finetuned_tokenizer.pad_token = self.finetuned_tokenizer.eos_token
+        #         
+        #     base_model = AutoModelForCausalLM.from_pretrained(
+        #         "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+        #         torch_dtype=torch.float32
+        #     )
+        #     
+        #     self.finetuned_model = PeftModel.from_pretrained(base_model, "kunalsahjwani/qwen-streamlit-coder")
+        #     print("✅ Your fine-tuned model loaded (fallback)")
+        #     self.finetuned_available = True
+        # except Exception as e:
+        #     print(f"⚠️ Fine-tuned model loading failed: {e}")
+        #     self.finetuned_available = False
+        
         self.project_structure = {
             "app.py": "",
-            "pages/": {},
-            "utils/": {},
-            "data/": {},
             "requirements.txt": "",
             "README.md": ""
         }
     
     async def generate_streamlit_app(self, 
                                    app_idea: Dict[str, Any], 
-                                   user_requirements: str = "",
-                                   complexity_level: str = "simple") -> Dict[str, Any]:
+                                   user_requirements: str = "") -> Dict[str, Any]:
         """
-        Generate a complete Streamlit app based on the idea from Ideation app
+        Generate simple, focused Streamlit app with fallback strategy
         """
         try:
-            # Extract context from the app idea
             app_name = app_idea.get("name", "MyApp")
             app_category = app_idea.get("category", "productivity")
             app_description = app_idea.get("description", "A web application")
             
-            print(f"Generating Streamlit app: {app_name} ({app_category})")
+            print(f"💻 GENERATING: {app_name} ({app_category}) - Simple functionality")
             
-            # Generate main application file
-            main_app = await self._generate_main_app(app_name, app_description, app_category, user_requirements)
+            # Try Gemini first
+            main_app = None
+            model_used = None
             
-            # Generate additional pages based on complexity
-            additional_pages = {}
-            if complexity_level in ["medium", "complex"]:
-                additional_pages = await self._generate_additional_pages(app_idea, complexity_level)
+            if self.gemini_available:
+                try:
+                    print("🚀 Trying Gemini (primary)...")
+                    main_app = await self._generate_with_gemini(app_name, app_description, app_category, user_requirements)
+                    model_used = "gemini-2.0-flash"
+                    print("✅ Gemini generation successful!")
+                except Exception as e:
+                    print(f"⚠️ Gemini failed: {e}")
+                    print("🔄 Falling back to your fine-tuned model...")
             
-            # Generate utility functions
-            utils = await self._generate_utils(app_category, complexity_level)
+            # Fallback to your fine-tuned model
+            if main_app is None and self.finetuned_available:
+                try:
+                    print("🤖 Using your fine-tuned model (fallback)...")
+                    main_app = await self._generate_with_finetuned(app_name, app_description, app_category, user_requirements)
+                    model_used = "kunalsahjwani/qwen-streamlit-coder"
+                    print("✅ Fine-tuned model generation successful!")
+                except Exception as e:
+                    print(f"❌ Fine-tuned model also failed: {e}")
             
-            # Generate requirements.txt
-            requirements = self._generate_requirements(app_category, complexity_level)
+            # Fail cleanly if both models fail
+            if main_app is None:
+                print("❌ Both Gemini and fine-tuned model failed")
+                return {
+                    "success": False,
+                    "error": "Both Gemini and fine-tuned model failed to generate code",
+                    "app_name": app_name,
+                    "gemini_available": self.gemini_available,
+                    "finetuned_available": self.finetuned_available
+                }
             
-            # Compile the complete project
+            # Simple project structure - no additional pages
             project_files = {
                 "app.py": main_app,
-                "requirements.txt": requirements,
-                "README.md": self._generate_readme(app_name, app_description),
-                **additional_pages,
-                **utils
+                "requirements.txt": self._generate_requirements(app_category),
+                "README.md": self._generate_readme(app_name, app_description, model_used)
             }
             
             return {
@@ -80,361 +133,110 @@ class CodeAgent:
                 "app_name": app_name,
                 "project_files": project_files,
                 "app_structure": self._analyze_app_structure(project_files),
-                "development_notes": self._generate_development_notes(app_idea, project_files),
-                "next_steps": self._suggest_next_steps(app_category, complexity_level),
+                "development_notes": self._generate_development_notes(app_idea, project_files, model_used),
+                "next_steps": self._suggest_next_steps(app_category),
+                "model_used": model_used,
                 "run_command": "streamlit run app.py"
             }
             
         except Exception as e:
-            print(f"Error generating Streamlit app: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "app_name": app_idea.get("name", "Unknown")
-            }
+            print(f"❌ Error generating app: {e}")
+            return {"success": False, "error": str(e)}
     
-    async def _generate_main_app(self, app_name: str, app_description: str, app_category: str, requirements: str) -> str:
+    async def _generate_with_gemini(self, app_name: str, app_description: str, app_category: str, requirements: str) -> str:
         """
-        Generate the main app.py file for the Streamlit app
+        Generate using Gemini (primary method) - Simple apps only
         """
-        try:
-            # Get category-specific features
-            category_features = self._get_category_features(app_category)
-            
-            system_prompt = f"""
-            Generate a complete Streamlit application (app.py) for a {app_category} application.
-            
-            App Details:
-            - Name: {app_name}
-            - Category: {app_category}
-            - Description: {app_description}
-            - Additional Requirements: {requirements}
-            
-            Category-specific features to include:
-            {category_features}
-            
-            Technical Requirements:
-            1. Use modern Streamlit components (st.columns, st.tabs, st.container, etc.)
-            2. Include proper page configuration with title and icon
-            3. Add sidebar navigation if applicable
-            4. Include sample data for demonstration
-            5. Use appropriate charts/visualizations for the category
-            6. Add proper error handling
-            7. Include session state management where needed
-            8. Use st.cache_data for performance
-            9. Add helpful tooltips and descriptions
-            10. Include a professional header and footer
-            
-            Generate clean, well-commented, production-ready code that demonstrates the app's core functionality.
-            Make it interactive and engaging for users.
-            """
-            
-            messages = [
-                SystemMessage(content=system_prompt),
-                HumanMessage(content=f"Create a complete Streamlit app for {app_name}")
-            ]
-            
-            response = await self.llm.ainvoke(messages)
-            return self._clean_code_response(response.content)
-            
-        except Exception as e:
-            print(f"Error generating main app: {e}")
-            return self._get_fallback_main_app(app_name, app_category)
+        category_features = self._get_category_features(app_category)
+        
+        system_prompt = f"""
+        Generate a complete, simple Streamlit application (app.py) for a {app_category} application.
+        
+        App Details:
+        - Name: {app_name}
+        - Category: {app_category}
+        - Description: {app_description}
+        - Additional Requirements: {requirements}
+        
+        Category-specific features to include:
+        {category_features}
+        
+        Technical Requirements:
+        1. Use modern Streamlit components (st.columns, st.tabs, st.container, etc.)
+        2. Include proper page configuration with title and icon
+        3. Add sidebar navigation if applicable
+        4. Include sample data for demonstration
+        5. Use appropriate charts/visualizations for the category
+        6. Add proper error handling
+        7. Include session state management where needed
+        8. Use st.cache_data for performance
+        9. Add helpful tooltips and descriptions
+        10. Include a professional header and footer
+        
+        IMPORTANT: Generate a single-page app with focused functionality.
+        Make it clean, well-commented, and production-ready.
+        Focus on core features rather than complexity.
+        DO NOT include any emojis in the generated code - use plain text only.
+        """
+        
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=f"Create a simple, focused Streamlit app for {app_name}")
+        ]
+        
+        response = await self.llm.ainvoke(messages)
+        return response.content
+    
+    async def _generate_with_finetuned(self, app_name: str, app_description: str, app_category: str, requirements: str) -> str:
+        """
+        Generate using your fine-tuned model (fallback method) - COMMENTED OUT
+        Uncomment this method to enable fine-tuned model generation
+        """
+        # COMMENTED OUT - Uncomment to use fine-tuned model
+        # prompt = f"""Create a simple Streamlit app for {app_description} (NO EMOJIS in code):
+        # 
+        # ```python
+        # import streamlit as st
+        # import pandas as pd
+        # 
+        # st.title("{app_name}")
+        # st.sidebar.header("Controls")
+        # 
+        # # App functionality"""
+        # 
+        # inputs = self.finetuned_tokenizer(prompt, return_tensors="pt")
+        # 
+        # with torch.no_grad():
+        #     output = self.finetuned_model.generate(
+        #         **inputs,
+        #         max_new_tokens=400,
+        #         temperature=0.3,
+        #         do_sample=True,
+        #         pad_token_id=self.finetuned_tokenizer.eos_token_id
+        #     )
+        # 
+        # response = self.finetuned_tokenizer.decode(output[0], skip_special_tokens=True)
+        # return response
+        
+        # Placeholder return when commented out
+        raise Exception("Fine-tuned model is currently disabled. Uncomment the code above to enable it.")
     
     def _get_category_features(self, category: str) -> str:
-        """
-        Get specific features and components based on app category
-        """
-        category_features = {
-            "digital_product": """
-            - Product catalog with images and descriptions
-            - Shopping cart functionality (simulated)
-            - Product comparison tool
-            - Customer reviews and ratings display
-            - Price filtering and search
-            """,
-            "finance": """
-            - Financial dashboard with key metrics
-            - Interactive charts (line, bar, pie charts)
-            - Budget tracking and expense categorization
-            - Portfolio analysis with sample data
-            - Financial calculators (compound interest, loan calculator)
-            """,
-            "services": """
-            - Service listings with descriptions
-            - Booking calendar interface
-            - Service provider profiles
-            - Customer feedback system
-            - Pricing calculator for different services
-            """,
-            "healthcare": """
-            - Health metrics tracking dashboard
-            - Appointment scheduling interface
-            - Medical history tracker
-            - Health progress visualizations
-            - BMI calculator and health tips
-            """,
-            "education": """
-            - Course catalog and descriptions
-            - Progress tracking dashboard
-            - Interactive quizzes or assessments
-            - Learning analytics and charts
-            - Study planner and calendar
-            """,
-            "entertainment": """
-            - Content recommendation engine
-            - Media library browser
-            - User rating and review system
-            - Trending content dashboard
-            - Personalized content feed
-            """,
-            "travel": """
-            - Destination search and filtering
-            - Travel itinerary planner
-            - Budget calculator for trips
-            - Photo gallery of destinations
-            - Travel booking interface (simulated)
-            """,
-            "food": """
-            - Recipe browser and search
-            - Meal planning calendar
-            - Nutrition calculator
-            - Restaurant finder and reviews
-            - Cooking timer and converter tools
-            """,
-            "technology": """
-            - Tech product showcase
-            - Feature comparison matrices
-            - Performance benchmarks and charts
-            - Technical specifications display
-            - Product recommendation system
-            """,
-            "automotive": """
-            - Vehicle database and search
-            - Maintenance tracking system
-            - Fuel efficiency calculator
-            - Vehicle comparison tool
-            - Service scheduling interface
-            """
+        """Get simple, focused features based on app category"""
+        features = {
+            "finance": "- Financial dashboard with key metrics\n- Simple budget tracking\n- Basic financial calculator\n- Interactive charts",
+            "healthcare": "- Health metrics display\n- Simple progress tracking\n- BMI calculator\n- Basic health visualizations",
+            "education": "- Simple course browser\n- Basic progress tracking\n- Interactive quiz component\n- Learning dashboard",
+            "entertainment": "- Content display interface\n- Simple rating system\n- Basic recommendations\n- User-friendly navigation",
+            "travel": "- Destination browser\n- Simple trip information\n- Basic budget calculator\n- Photo gallery",
+            "food": "- Recipe browser\n- Simple meal planner\n- Basic nutrition info\n- Cooking timer",
+            "productivity": "- Task management interface\n- Simple progress tracking\n- Basic analytics\n- User-friendly dashboard"
         }
         
-        return category_features.get(category.lower(), """
-        - Interactive dashboard with key metrics
-        - Data visualization and charts
-        - User input forms and calculations
-        - Search and filtering capabilities
-        - Progress tracking and analytics
-        """)
+        return features.get(category.lower(), "- Simple interactive dashboard\n- Basic data visualization\n- User input forms\n- Core functionality")
     
-    async def _generate_additional_pages(self, app_idea: Dict[str, Any], complexity: str) -> Dict[str, str]:
-        """
-        Generate additional pages for medium/complex apps
-        """
-        additional_files = {}
-        app_category = app_idea.get("category", "productivity")
-        
-        try:
-            if complexity == "medium":
-                # Add analytics page
-                additional_files["pages/Analytics.py"] = await self._generate_analytics_page(app_idea)
-                
-            elif complexity == "complex":
-                # Add multiple pages
-                additional_files["pages/Analytics.py"] = await self._generate_analytics_page(app_idea)
-                additional_files["pages/Settings.py"] = await self._generate_settings_page(app_idea)
-                additional_files["pages/Profile.py"] = await self._generate_profile_page(app_idea)
-            
-            return additional_files
-            
-        except Exception as e:
-            print(f"Error generating additional pages: {e}")
-            return {}
-    
-    async def _generate_analytics_page(self, app_idea: Dict[str, Any]) -> str:
-        """
-        Generate an analytics page
-        """
-        try:
-            app_category = app_idea.get("category", "productivity")
-            app_name = app_idea.get("name", "MyApp")
-            
-            system_prompt = f"""
-            Generate a Streamlit analytics page for a {app_category} application called {app_name}.
-            
-            Include:
-            1. Various chart types (line, bar, pie, area charts)
-            2. Key performance indicators (KPIs)
-            3. Interactive filters and date ranges
-            4. Metrics cards with delta values
-            5. Sample data appropriate for {app_category}
-            6. Proper page configuration
-            
-            Use modern Streamlit components and make it visually appealing.
-            """
-            
-            messages = [
-                SystemMessage(content=system_prompt),
-                HumanMessage(content=f"Create analytics page for {app_name}")
-            ]
-            
-            response = await self.llm.ainvoke(messages)
-            return self._clean_code_response(response.content)
-            
-        except Exception as e:
-            print(f"Error generating analytics page: {e}")
-            return self._get_fallback_analytics_page()
-    
-    async def _generate_settings_page(self, app_idea: Dict[str, Any]) -> str:
-        """
-        Generate a settings page
-        """
-        return """
-import streamlit as st
-
-st.set_page_config(page_title="Settings", page_icon="*")
-
-st.title("Settings")
-
-st.sidebar.success("Navigate between pages using the sidebar.")
-
-# App Settings
-st.header("Application Settings")
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.subheader("Display")
-    theme = st.selectbox("Theme", ["Light", "Dark", "Auto"])
-    language = st.selectbox("Language", ["English", "Spanish", "French"])
-    
-with col2:
-    st.subheader("Notifications")
-    email_notifications = st.checkbox("Email Notifications", value=True)
-    push_notifications = st.checkbox("Push Notifications", value=False)
-
-# Data Settings
-st.header("Data & Privacy")
-data_retention = st.slider("Data Retention (days)", 30, 365, 90)
-analytics_consent = st.checkbox("Allow Analytics", value=True)
-
-# Export/Import
-st.header("Data Management")
-if st.button("Export Data"):
-    st.success("Data exported successfully!")
-
-if st.button("Reset Settings"):
-    st.warning("Settings have been reset to defaults.")
-
-st.info("Settings are automatically saved.")
-"""
-    
-    async def _generate_profile_page(self, app_idea: Dict[str, Any]) -> str:
-        """
-        Generate a profile page
-        """
-        return """
-import streamlit as st
-import pandas as pd
-from datetime import datetime
-
-st.set_page_config(page_title="Profile", page_icon="👤")
-
-st.title("User Profile")
-
-st.sidebar.success("Navigate between pages using the sidebar.")
-
-# Profile Information
-col1, col2 = st.columns([1, 2])
-
-with col1:
-    st.image("https://via.placeholder.com/150", caption="Profile Picture")
-    if st.button("Change Picture"):
-        st.info("Picture upload functionality would go here")
-
-with col2:
-    st.subheader("Personal Information")
-    
-    name = st.text_input("Full Name", value="John Doe")
-    email = st.text_input("Email", value="john.doe@example.com")
-    phone = st.text_input("Phone", value="+1 (555) 123-4567")
-    bio = st.text_area("Bio", value="Welcome to my profile!")
-
-# Activity Summary
-st.header("Activity Summary")
-
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    st.metric("Total Sessions", "47", "+5")
-with col2:
-    st.metric("Time Spent", "23.5h", "+2.1h")
-with col3:
-    st.metric("Projects", "12", "+1")
-with col4:
-    st.metric("Achievements", "8", "+1")
-
-# Recent Activity
-st.header("Recent Activity")
-
-activity_data = {
-    "Date": ["2024-01-15", "2024-01-14", "2024-01-13"],
-    "Activity": ["Created new project", "Updated profile", "Completed tutorial"],
-    "Duration": ["45 min", "10 min", "30 min"]
-}
-
-st.dataframe(pd.DataFrame(activity_data), use_container_width=True)
-
-if st.button("Save Profile"):
-    st.success("Profile updated successfully!")
-"""
-    
-    async def _generate_utils(self, app_category: str, complexity: str) -> Dict[str, str]:
-        """
-        Generate utility functions
-        """
-        utils = {}
-        
-        if complexity in ["medium", "complex"]:
-            utils["utils/helpers.py"] = """
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
-import streamlit as st
-
-@st.cache_data
-def load_sample_data():
-    \"\"\"Load sample data for the application\"\"\"
-    dates = pd.date_range(start='2024-01-01', periods=100, freq='D')
-    data = {
-        'date': dates,
-        'value': np.random.randint(10, 100, 100),
-        'category': np.random.choice(['A', 'B', 'C'], 100),
-        'score': np.random.uniform(0, 1, 100)
-    }
-    return pd.DataFrame(data)
-
-def format_number(num):
-    \"\"\"Format numbers for display\"\"\"
-    if num >= 1000000:
-        return f"{num/1000000:.1f}M"
-    elif num >= 1000:
-        return f"{num/1000:.1f}K"
-    else:
-        return str(num)
-
-def calculate_growth(current, previous):
-    \"\"\"Calculate growth percentage\"\"\"
-    if previous == 0:
-        return 0
-    return ((current - previous) / previous) * 100
-"""
-        
-        return utils
-    
-    def _generate_requirements(self, app_category: str, complexity: str) -> str:
-        """
-        Generate requirements.txt based on app needs
-        """
+    def _generate_requirements(self, app_category: str) -> str:
+        """Generate simple requirements.txt based on app needs"""
         base_requirements = [
             "streamlit>=1.28.0",
             "pandas>=1.5.0",
@@ -443,46 +245,40 @@ def calculate_growth(current, previous):
         ]
         
         category_requirements = {
-            "finance": ["yfinance", "scipy"],
-            "healthcare": ["scikit-learn", "matplotlib"],
-            "education": ["matplotlib", "seaborn"],
-            "entertainment": ["requests", "beautifulsoup4"],
-            "travel": ["folium", "geopy"],
-            "food": ["requests", "pillow"]
+            "finance": ["yfinance"],
+            "healthcare": ["scikit-learn"],
+            "education": ["matplotlib"],
+            "entertainment": ["requests"],
+            "travel": ["folium"],
+            "food": ["requests"]
         }
-        
-        if complexity == "complex":
-            base_requirements.extend(["sqlalchemy", "pymongo", "redis"])
         
         all_requirements = base_requirements + category_requirements.get(app_category, [])
         return "\n".join(all_requirements)
     
-    def _generate_development_notes(self, app_idea: Dict[str, Any], project_files: Dict[str, str]) -> List[str]:
-        """
-        Generate development notes and recommendations
-        """
+    def _generate_development_notes(self, app_idea: Dict[str, Any], project_files: Dict[str, str], model_used: str) -> List[str]:
+        """Generate development notes and recommendations"""
         notes = [
-            f"Generated Streamlit app for {app_idea.get('name', 'your app')}",
-            f"App Category: {app_idea.get('category', 'general')}",
-            f"Generated {len(project_files)} files",
-            "Run 'pip install -r requirements.txt' to install dependencies",
-            "Run 'streamlit run app.py' to start the app",
-            "App will open in your browser at http://localhost:8501",
-            "Customize the app by editing app.py",
-            "Add your own data sources and APIs"
+            f"✅ Generated by: {model_used}",
+            f"📱 App: {app_idea.get('name', 'your app')} ({app_idea.get('category', 'general')})",
+            f"📁 Files: {len(project_files)}",
+            "🎯 Simple, focused functionality",
+            "🔧 Run 'pip install -r requirements.txt' to install dependencies",
+            "🚀 Run 'streamlit run app.py' to start the app",
+            "🌐 App will open in your browser at http://localhost:8501",
+            "💡 Customize the app by editing app.py",
+            "📊 Add your own data sources and APIs"
         ]
         
         return notes
     
-    def _suggest_next_steps(self, app_category: str, complexity: str) -> List[str]:
-        """
-        Suggest next development steps
-        """
+    def _suggest_next_steps(self, app_category: str) -> List[str]:
+        """Suggest next development steps for simple apps"""
         base_steps = [
             "1. Test the app locally with 'streamlit run app.py'",
             "2. Customize the UI colors and themes",
             "3. Replace sample data with real data sources",
-            "4. Add authentication if needed"
+            "4. Add your own branding and styling"
         ]
         
         category_steps = {
@@ -492,135 +288,41 @@ def calculate_growth(current, previous):
             "entertainment": ["5. Add content recommendation", "6. Implement user ratings"]
         }
         
-        steps = base_steps + category_steps.get(app_category, ["5. Add app-specific features"])
-        
-        if complexity == "complex":
-            steps.append("7. Deploy to Streamlit Cloud or Heroku")
-            steps.append("8. Add database integration")
+        steps = base_steps + category_steps.get(app_category, ["5. Add category-specific features"])
+        steps.append("6. Deploy to Streamlit Cloud")
         
         return steps
     
-    def _clean_code_response(self, code: str) -> str:
-        """Clean the code response from the LLM"""
-        code = re.sub(r'```python\n?', '', code)
-        code = re.sub(r'```\n?', '', code)
-        return code.strip()
-    
-    def _get_fallback_main_app(self, app_name: str, app_category: str) -> str:
-        """Fallback main app if generation fails"""
-        return f"""
-import streamlit as st
-import pandas as pd
-import numpy as np
-import plotly.express as px
-
-# Page configuration
-st.set_page_config(
-    page_title="{app_name}",
-    page_icon="🚀",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-# Main title
-st.title("{app_name}")
-st.markdown("**{app_category.title()} Application**")
-
-# Sidebar
-st.sidebar.header("Navigation")
-st.sidebar.success("Welcome to {app_name}!")
-
-# Main content
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.metric("Total Users", "1,234", "+12%")
-with col2:
-    st.metric("Active Sessions", "567", "+5%")
-with col3:
-    st.metric("Revenue", "$12,345", "+8%")
-
-# Sample chart
-st.header("Analytics Dashboard")
-sample_data = pd.DataFrame({{
-    'Date': pd.date_range('2024-01-01', periods=30),
-    'Value': np.random.randint(10, 100, 30)
-}})
-
-fig = px.line(sample_data, x='Date', y='Value', title='Sample Data Trend')
-st.plotly_chart(fig, use_container_width=True)
-
-# Interactive section
-st.header("Interactive Features")
-user_input = st.text_input("Enter your input:")
-if user_input:
-    st.success(f"You entered: {{user_input}}")
-
-# Footer
-st.markdown("---")
-st.markdown("Built with Streamlit | Generated by Steve Connect")
-"""
-    
-    def _get_fallback_analytics_page(self) -> str:
-        """Fallback analytics page"""
-        return """
-import streamlit as st
-import pandas as pd
-import numpy as np
-import plotly.express as px
-
-st.set_page_config(page_title="Analytics", page_icon="📊")
-
-st.title("Analytics Dashboard")
-
-# Sample data
-data = pd.DataFrame({
-    'Date': pd.date_range('2024-01-01', periods=30),
-    'Sales': np.random.randint(100, 1000, 30),
-    'Users': np.random.randint(50, 500, 30)
-})
-
-# Charts
-col1, col2 = st.columns(2)
-
-with col1:
-    fig1 = px.line(data, x='Date', y='Sales', title='Sales Trend')
-    st.plotly_chart(fig1, use_container_width=True)
-
-with col2:
-    fig2 = px.bar(data, x='Date', y='Users', title='User Growth')
-    st.plotly_chart(fig2, use_container_width=True)
-"""
-    
-    def _generate_readme(self, app_name: str, app_description: str) -> str:
-        """Generate README.md for the project"""
-        return f"""
-# {app_name}
+    def _generate_readme(self, app_name: str, app_description: str, model_used: str) -> str:
+        """Generate README with model info"""
+        return f"""# {app_name}
 
 {app_description}
 
-## Getting Started
+## Generated by Steve Connect
+- **Primary Model**: Google Gemini 2.0 Flash
+- **Fallback Model**: kunalsahjwani/qwen-streamlit-coder  
+- **Model Used**: {model_used}
+- **App Type**: Simple, focused functionality
 
-This is a Streamlit application generated by Steve Connect.
+## Installation
+```bash
+pip install -r requirements.txt
+streamlit run app.py
+```
 
-### Prerequisites
-- Python 3.8 or higher
-- pip package manager
-
-### Installation
-1. Clone or download this project
-2. Install dependencies: `pip install -r requirements.txt`
-3. Run the app: `streamlit run app.py`
-4. Open your browser to http://localhost:8501
-
-### Features
+## Features
+- Simple, focused functionality
 - Interactive web interface
 - Real-time data visualization
 - Modern UI components
 - Responsive design
 
-## Generated by Steve Connect
-This app was automatically generated based on your idea. Customize it to fit your specific needs!
+## Customization
+- Edit app.py to modify functionality
+- Update requirements.txt for additional dependencies
+- Customize styling and themes
+- Add your own data sources
 
 ## Deployment
 Deploy to Streamlit Cloud:
@@ -634,8 +336,7 @@ Deploy to Streamlit Cloud:
         return {
             "total_files": len(project_files),
             "python_files": len([f for f in project_files.keys() if f.endswith('.py')]),
-            "pages": len([f for f in project_files.keys() if 'pages/' in f]),
-            "utils": len([f for f in project_files.keys() if 'utils/' in f]),
+            "app_type": "simple",
             "has_requirements": "requirements.txt" in project_files,
             "has_readme": "README.md" in project_files
         }

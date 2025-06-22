@@ -253,6 +253,13 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
 
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+            padding: 8px 16px;
+            font-size: 12px;
+            margin: 5px;
+        }
+
         /* Quick Actions */
         .quick-actions {
             display: grid;
@@ -334,6 +341,43 @@
             padding: 12px;
             border-radius: 8px;
             margin: 10px 0;
+        }
+
+        /* File Download Section */
+        .file-downloads {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .file-downloads h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .file-name {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .file-size {
+            font-size: 12px;
+            color: #666;
+            margin-left: 10px;
         }
 
         /* Responsive Design */
@@ -485,10 +529,10 @@
                     </div>
                 </div>
 
-                <!-- Vibe Studio Tab -->
+                <!-- Vibe Studio Tab - SIMPLIFIED -->
                 <div class="tab-pane app-vibe-studio" id="pane-vibe-studio">
                     <div class="tab-header">
-                        <h3>💻 Vibe Studio - Code Generator</h3>
+                        <h3>💻 Vibe Studio - Simple App Generator</h3>
                     </div>
                     <div class="tab-body">
                         <div class="form-group">
@@ -499,15 +543,8 @@
                             <label>Additional Requirements:</label>
                             <textarea id="codeRequirements" rows="3" placeholder="Any specific features or requirements?"></textarea>
                         </div>
-                        <div class="form-group">
-                            <label>Complexity Level:</label>
-                            <select id="complexityLevel">
-                                <option value="simple">Simple - Basic functionality</option>
-                                <option value="medium">Medium - Multiple pages</option>
-                                <option value="complex">Complex - Full featured app</option>
-                            </select>
-                        </div>
-                        <button class="btn" onclick="generateAppDirect()">Generate Streamlit App</button>
+                        <!-- REMOVED: Complexity Level dropdown -->
+                        <button class="btn" onclick="generateAppDirect()">Generate Simple Streamlit App</button>
                         <div id="codeResult"></div>
                     </div>
                 </div>
@@ -674,11 +711,10 @@
             }
         }
 
-        // Direct App Functions (Independent of workflow)
+        // UPDATED: Direct App Functions (Simplified - No Complexity)
         async function generateAppDirect() {
             const quickIdea = document.getElementById('quickAppIdea').value;
             const requirements = document.getElementById('codeRequirements').value;
-            const complexity = document.getElementById('complexityLevel').value;
 
             if (!quickIdea.trim()) {
                 alert('Please describe your app idea first');
@@ -686,7 +722,7 @@
             }
 
             const resultDiv = document.getElementById('codeResult');
-            resultDiv.innerHTML = '<div class="loading">Generating your Streamlit app...</div>';
+            resultDiv.innerHTML = '<div class="loading">Generating your simple Streamlit app...</div>';
 
             try {
                 // Create a mock ideation context from the quick idea
@@ -704,8 +740,8 @@
                         action: 'generate',
                         session_id: currentSessionId || 'direct_' + Date.now(),
                         data: { 
-                            requirements: requirements + ' App idea: ' + quickIdea, 
-                            complexity 
+                            requirements: requirements + ' App idea: ' + quickIdea
+                            // REMOVED: complexity parameter
                         }
                     })
                 });
@@ -715,13 +751,24 @@
                 if (result.status === 'success') {
                     const appData = result.result;
                     resultDiv.innerHTML = `
-                        <div class="success">App generated successfully!</div>
+                        <div class="success">Simple app generated successfully!</div>
                         <div><strong>App Name:</strong> ${appData.app_name}</div>
                         <div><strong>Files Generated:</strong> ${appData.app_structure.total_files}</div>
+                        <div><strong>App Type:</strong> Simple, focused functionality</div>
                         <div><strong>Run Command:</strong> <code>${appData.run_command}</code></div>
-                        <button class="btn" onclick="downloadProjectFiles('${appData.app_name}')">Download Project ZIP</button>
+                        
+                        <div style="margin: 15px 0;">
+                            <button class="btn" onclick="downloadProjectFiles('${appData.app_name}')">Download Complete Project ZIP</button>
+                        </div>
+                        
+                        <!-- Individual File Downloads -->
+                        <div class="file-downloads">
+                            <h4>📁 Individual Files:</h4>
+                            ${generateFileDownloadButtons(appData.project_files)}
+                        </div>
+                        
                         <details style="margin-top: 15px;">
-                            <summary>View Generated Files</summary>
+                            <summary>📋 View Generated Files</summary>
                             <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px; overflow: auto; max-height: 300px;">
 ${Object.keys(appData.project_files).join('\n')}
                             </pre>
@@ -731,12 +778,67 @@ ${Object.keys(appData.project_files).join('\n')}
                     window.currentProjectFiles = appData.project_files;
                     window.currentAppName = appData.app_name;
                 } else {
-                    resultDiv.innerHTML = `<div class="error">Failed to generate app</div>`;
+                    resultDiv.innerHTML = `<div class="error">Failed to generate app: ${result.result?.error || 'Unknown error'}</div>`;
                 }
             } catch (error) {
-                resultDiv.innerHTML = `<div class="error">Error generating app</div>`;
+                resultDiv.innerHTML = `<div class="error">Error generating app: ${error.message}</div>`;
                 console.error('Code generation error:', error);
             }
+        }
+
+        // NEW: Generate individual file download buttons
+        function generateFileDownloadButtons(projectFiles) {
+            let buttonsHTML = '';
+            
+            Object.entries(projectFiles).forEach(([fileName, fileContent]) => {
+                const fileSize = new Blob([fileContent]).size;
+                const fileSizeFormatted = formatFileSize(fileSize);
+                
+                buttonsHTML += `
+                    <div class="file-item">
+                        <div>
+                            <span class="file-name">${fileName}</span>
+                            <span class="file-size">(${fileSizeFormatted})</span>
+                        </div>
+                        <button class="btn-secondary" onclick="downloadIndividualFile('${fileName}')">
+                            📥 Download
+                        </button>
+                    </div>
+                `;
+            });
+            
+            return buttonsHTML;
+        }
+
+        // NEW: Download individual file
+        function downloadIndividualFile(fileName) {
+            if (!window.currentProjectFiles || !window.currentProjectFiles[fileName]) {
+                alert('File not found');
+                return;
+            }
+
+            const fileContent = window.currentProjectFiles[fileName];
+            const blob = new Blob([fileContent], { type: 'text/plain' });
+            
+            const downloadLink = document.createElement('a');
+            downloadLink.href = URL.createObjectURL(blob);
+            downloadLink.download = fileName;
+            
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            
+            URL.revokeObjectURL(downloadLink.href);
+            addMessage(`Downloaded ${fileName} successfully!`, 'steve');
+        }
+
+        // NEW: Format file size helper
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
         }
 
         async function generateImageDirect() {
