@@ -1,7 +1,8 @@
-# src/agents/leonardo_agent.py - Enhanced with workflow integration
+# src/agents/leonardo_agent.py - Enhanced with workflow integration and fixed image decoding
 """
 Leonardo Agent - AI Image Generation for Steve Connect
 Enhanced with better prompts and workflow integration
+Fixed UTF-8 decoding error for image data
 """
 
 import os
@@ -64,11 +65,11 @@ class LeonardoAgent:
                )
            )
            
-           # Extract image - using working method
+           # Extract image - FIXED method
            for part in response.candidates[0].content.parts:
                if part.inline_data is not None:
-                   # The data is already base64 encoded by Google
-                   image_base64 = part.inline_data.data.decode('utf-8')
+                   # CORRECT: Convert raw bytes to base64 string
+                   image_base64 = base64.b64encode(part.inline_data.data).decode('utf-8')
                    
                    print(f"✅ Image generated successfully")
                    print(f"Base64 length: {len(image_base64)} characters")
