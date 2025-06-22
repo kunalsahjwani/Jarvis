@@ -1,7 +1,8 @@
-# src/api/routes.py - Enhanced with cross-app context sharing
+# src/api/routes.py - Enhanced with cross-app context sharing and MCP Gmail
 """
 FastAPI routes for Steve Connect - Enhanced Version
 Handles all API endpoints with proper context sharing between apps
+Now includes MCP Gmail integration for actual email sending
 """
 
 from fastapi import APIRouter, HTTPException, status
@@ -16,6 +17,7 @@ from src.agents.router_agent import RouterAgent
 from src.agents.leonardo_agent import LeonardoAgent
 from src.agents.code_agent import CodeAgent
 from src.agents.email_agent import EmailAgent
+from src.agents.email_sender import EmailSender  # NEW: MCP Gmail integration
 
 # Create the main router
 router = APIRouter()
@@ -25,6 +27,7 @@ router_agent = RouterAgent()
 leonardo_agent = LeonardoAgent()
 code_agent = CodeAgent()
 email_agent = EmailAgent()
+email_sender = EmailSender()  # NEW: MCP Gmail sender
 
 # In-memory storage for session data (temporary solution)
 session_storage = {}
@@ -209,9 +212,9 @@ async def generate_app_code(action: AppAction):
         session_data = session_storage.get(session_id, {})
         ideation_data = session_data.get("app_data", {}).get("ideation", {})
         
-        # 🔥 KEY FIX: If no ideation data exists, extract it from user input and SAVE IT
+        # KEY FIX: If no ideation data exists, extract it from user input and SAVE IT
         if not ideation_data:
-            print(f"🔧 No ideation data found, extracting from user input: {user_requirements}")
+            print(f"No ideation data found, extracting from user input: {user_requirements}")
             
             # Extract app information from user requirements
             extracted_app_name = _extract_app_name_from_text(user_requirements)
@@ -224,12 +227,12 @@ async def generate_app_code(action: AppAction):
                 "description": user_requirements or f"{extracted_app_name} application"
             }
             
-            # 🔥 CRITICAL: Save the extracted ideation data to session for chat system
+            # CRITICAL: Save the extracted ideation data to session for chat system
             session_storage[session_id]["app_data"]["ideation"] = ideation_data
             
-            print(f"✅ Extracted and saved app context: {ideation_data}")
+            print(f"Extracted and saved app context: {ideation_data}")
         else:
-            print(f"✅ Using existing ideation data: {ideation_data}")
+            print(f"Using existing ideation data: {ideation_data}")
         
         # Generate the Streamlit app
         generation_result = await code_agent.generate_streamlit_app(
@@ -246,7 +249,7 @@ async def generate_app_code(action: AppAction):
                 "user_requirements": user_requirements
             }
             
-            print(f"✅ Saved Vibe Studio context for session {session_id}")
+            print(f"Saved Vibe Studio context for session {session_id}")
         
         return JSONResponse({
             "status": "success" if generation_result["success"] else "error",
@@ -256,7 +259,7 @@ async def generate_app_code(action: AppAction):
         })
         
     except Exception as e:
-        print(f"❌ Error in vibe-studio route: {e}")
+        print(f"Error in vibe-studio route: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"App generation failed: {str(e)}"
@@ -281,7 +284,7 @@ async def generate_marketing_image(action: AppAction):
         
         # If no ideation data but user provided context, extract it
         if not ideation_data and context:
-            print(f"🔧 No ideation data, extracting from design context: {context}")
+            print(f"No ideation data, extracting from design context: {context}")
             
             extracted_app_name = _extract_app_name_from_text(context)
             extracted_category = _extract_app_category_from_text(context)
@@ -294,7 +297,7 @@ async def generate_marketing_image(action: AppAction):
             
             # Save extracted context
             session_storage[session_id]["app_data"]["ideation"] = ideation_data
-            print(f"✅ Extracted and saved design context: {ideation_data}")
+            print(f"Extracted and saved design context: {ideation_data}")
         
         # Fallback to generic data if still no context
         if not ideation_data:
@@ -369,7 +372,7 @@ async def draft_marketing_email(action: AppAction):
             })
         elif context:
             # If no ideation data but user provided context, extract it
-            print(f"🔧 No ideation data, extracting from email context: {context}")
+            print(f"No ideation data, extracting from email context: {context}")
             
             extracted_app_name = _extract_app_name_from_text(context)
             extracted_category = _extract_app_category_from_text(context)
@@ -391,7 +394,7 @@ async def draft_marketing_email(action: AppAction):
                 "ideation_data": ideation_data
             })
             
-            print(f"✅ Extracted and saved email context: {ideation_data}")
+            print(f"Extracted and saved email context: {ideation_data}")
         
         if "vibe_studio" in app_data:
             app_context["vibe_studio_data"] = app_data["vibe_studio"]
@@ -413,13 +416,15 @@ async def draft_marketing_email(action: AppAction):
                 "target_audience": target_audience,
                 "context_used": context,
                 "email_generated": True,
-                "subject_line": email_result["subject_line"]
+                "subject_line": email_result["subject_line"],
+                "email_body": email_result["email_body"],  # Store for sending
+                "complete_email": email_result["complete_email"]
             }
         
         return JSONResponse({
             "status": "success" if email_result["success"] else "error",
             "result": email_result,
-            "next_suggestion": "Excellent! Your launch email is ready. You've completed the full workflow from idea to launch!",
+            "next_suggestion": "Excellent! Your launch email is ready. Want to send it? Use the send email feature!",
             "context_used": app_context
         })
         
@@ -427,6 +432,67 @@ async def draft_marketing_email(action: AppAction):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Email generation failed: {str(e)}"
+        )
+
+# NEW: MCP Gmail Send Email Endpoint
+@router.post("/gmail/send-email")
+async def send_email_via_mcp(action: AppAction):
+    """
+    Send email using MCP Gmail integration
+    """
+    try:
+        session_id = action.session_id
+        email_data = action.data
+        
+        # Extract required fields
+        recipient_email = email_data.get("recipient_email", "")
+        subject = email_data.get("subject", "")
+        email_body = email_data.get("email_body", "")
+        sender_name = email_data.get("sender_name", "Steve Connect")
+        
+        # Validate required fields
+        if not recipient_email or not subject or not email_body:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Missing required fields: recipient_email, subject, email_body"
+            )
+        
+        _ensure_session_structure(session_id)
+        
+        # Send the email via MCP
+        print(f"Attempting to send email via MCP to {recipient_email}")
+        send_result = await email_sender.send_email(
+            recipient_email=recipient_email,
+            subject=subject,
+            email_body=email_body,
+            sender_name=sender_name
+        )
+        
+        if send_result["success"]:
+            # Update session storage with send status
+            session_storage[session_id]["app_data"]["gmail_send"] = {
+                "sent": True,
+                "message_id": send_result["message_id"],
+                "recipient": recipient_email,
+                "subject": subject,
+                "sent_at": "now",
+                "method": send_result.get("method", "mcp"),
+                "mcp_tool": send_result.get("mcp_tool", "unknown")
+            }
+        
+        return JSONResponse({
+            "status": "success" if send_result["success"] else "error",
+            "result": send_result,
+            "message": "Email sent successfully via MCP!" if send_result["success"] else f"Failed to send email: {send_result.get('error', 'Unknown error')}"
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in send email endpoint: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Email sending failed: {str(e)}"
         )
 
 # Session and context management endpoints
@@ -489,7 +555,8 @@ async def check_agents_health():
             "router_agent": "healthy",
             "leonardo_agent": "healthy", 
             "code_agent": "healthy",
-            "email_agent": "healthy"
+            "email_agent": "healthy",
+            "email_sender": "healthy"  # NEW: MCP email sender health
         }
         
         return JSONResponse({
@@ -517,9 +584,11 @@ def _analyze_workflow_progress(context: Dict[str, Any]) -> Dict[str, Any]:
         "vibe_studio_complete": "vibe_studio" in app_data and bool(app_data["vibe_studio"]),
         "design_complete": "design" in app_data and bool(app_data["design"]),
         "gmail_complete": "gmail" in app_data and bool(app_data["gmail"]),
+        "email_sent": "gmail_send" in app_data and app_data["gmail_send"].get("sent", False)  # NEW: Track email sending
     }
     
-    completed_steps = sum(progress.values())
+    completed_steps = sum([progress["ideation_complete"], progress["vibe_studio_complete"], 
+                          progress["design_complete"], progress["gmail_complete"]])
     progress["completion_percentage"] = (completed_steps / 4) * 100
     progress["next_recommended_step"] = _get_next_step(progress)
     progress["current_app_context"] = app_data.get("ideation", {})
@@ -538,5 +607,7 @@ def _get_next_step(progress: Dict[str, Any]) -> str:
         return "Create marketing materials with the Design app"
     elif not progress["gmail_complete"]:
         return "Draft launch emails with Gmail integration"
+    elif not progress["email_sent"]:
+        return "Send your launch email to complete the workflow!"
     else:
-        return "Workflow complete! Your app is ready to launch!"
+        return "Workflow complete! Your app is ready and launched!"

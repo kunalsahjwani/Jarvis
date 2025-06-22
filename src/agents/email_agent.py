@@ -13,6 +13,7 @@ from langchain.schema import SystemMessage, HumanMessage
 from dotenv import load_dotenv
 from datetime import datetime
 
+
 load_dotenv()
 
 class EmailAgent:

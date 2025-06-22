@@ -1,6 +1,9 @@
 # Environment variables
 .env
 .env.*
+client_secret_*.json
+oauth_setup.py
+gmail_token.json
 
 # Python
 __pycache__/
@@ -43,3 +46,6 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+
+test_mcp_connection.py
