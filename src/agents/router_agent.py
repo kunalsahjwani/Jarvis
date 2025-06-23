@@ -129,21 +129,21 @@ CURRENT SITUATION:
 - Previous Decision: {context.get('previous_ai_decision')}
 
 CRITICAL INTELLIGENCE RULES:
-✓ Understanding "yes/ok/sure/lets move on" means user agrees with your last suggestion
-✓ When user says ambiguous "yes" or "move on", use WORKFLOW LOGIC:
+ Understanding "yes/ok/sure/lets move on" means user agrees with your last suggestion
+ When user says ambiguous "yes" or "move on", use WORKFLOW LOGIC:
   - After Ideation completed → Open Vibe Studio
   - After Vibe Studio completed → Open Design app  
   - After Design completed → Open Gmail
-✓ NEVER ask the same question repeatedly - if user is ambiguous, make smart default choice
-✓ When user asks about "my idea/app" reference their specific app details from context
-✓ BREAK REPETITIVE LOOPS - if you've asked a question 2+ times, just take action
-✓ Default to NEXT WORKFLOW STEP when user confirms but is unclear
+ NEVER ask the same question repeatedly - if user is ambiguous, make smart default choice
+ When user asks about "my idea/app" reference their specific app details from context
+ BREAK REPETITIVE LOOPS - if you've asked a question 2+ times, just take action
+ Default to NEXT WORKFLOW STEP when user confirms but is unclear
 
 ANTI-PATTERNS TO AVOID:
-❌ Asking "Would you like X or Y?" repeatedly when user already said "yes"
-❌ Getting stuck in conversation loops
-❌ Being indecisive when user gives clear intent to "move forward"
-❌ Asking for clarification on obvious workflow progressions
+ Asking "Would you like X or Y?" repeatedly when user already said "yes"
+ Getting stuck in conversation loops
+ Being indecisive when user gives clear intent to "move forward"
+ Asking for clarification on obvious workflow progressions
 
 ROUTING OPTIONS:
 - "open_app" + app_name: Open specific app (ideation/vibe_studio/design/gmail)

@@ -10,7 +10,7 @@
 # def test_streamlit_code():
 #     """Test Streamlit-specific code generation"""
     
-#     print("🧪 Testing Streamlit code generation...")
+#     print("Testing Streamlit code generation...")
     
 #     try:
 #         # Load your model (we know this works now)
@@ -24,7 +24,7 @@
 #         )
         
 #         model = PeftModel.from_pretrained(base_model, "kunalsahjwani/qwen-streamlit-coder")
-#         print("✅ Your fine-tuned model loaded!")
+#         print("Your fine-tuned model loaded!")
         
 #         # Test Streamlit-specific prompt
 #         prompt = """Create a Streamlit app for expense tracking:
@@ -33,14 +33,14 @@
 # import streamlit as st
 # import pandas as pd
 
-# st.title("💰 Expense Tracker")
+# st.title("Expense Tracker")
 # st.sidebar.header("Add New Expense")
 
 # # Input form"""
         
 #         inputs = tokenizer(prompt, return_tensors="pt")
         
-#         print("📤 Generating Streamlit code (30-60 seconds on CPU)...")
+#         print("Generating Streamlit code (30-60 seconds on CPU)...")
         
 #         with torch.no_grad():
 #             output = model.generate(
@@ -54,7 +54,7 @@
 #         response = tokenizer.decode(output[0], skip_special_tokens=True)
 #         generated_part = response[len(prompt):]
         
-#         print("✅ Streamlit code generated!")
+#         print("Streamlit code generated!")
 #         print("\n" + "="*50)
 #         print("YOUR FINE-TUNED MODEL OUTPUT:")
 #         print("="*50)
@@ -64,13 +64,13 @@
 #         # Save to file for testing
 #         with open("generated_app.py", "w") as f:
 #             f.write(response)
-#         print("\n💾 Code saved to 'generated_app.py'")
-#         print("🚀 Test it with: streamlit run generated_app.py")
+#         print("\nCode saved to 'generated_app.py'")
+#         print("Test it with: streamlit run generated_app.py")
         
 #         return True
         
 #     except Exception as e:
-#         print(f"❌ Error: {e}")
+#         print(f"Error: {e}")
 #         return False
 
 # if __name__ == "__main__":

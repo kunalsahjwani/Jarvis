@@ -1,8 +1,8 @@
 # src/mcp/gmail_mcp_client.py
 """
-MCP Gmail Client for Steve Connect - Final Working Version
+MCP Gmail Client for Steve Connect - Enhanced with Automatic Token Refresh
 Uses dedicated thread with Windows-compatible event loop for MCP operations
-Safe approach that doesn't affect other parts of the application
+ENHANCED: Automatic token refresh - no more manual browser interactions!
 """
 
 import os
@@ -12,15 +12,18 @@ import concurrent.futures
 import threading
 import sys
 import json
+# CHANGE: Added new imports for automatic token refresh functionality
+import requests
+import time
 from typing import Dict, Any, Optional
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from dotenv import load_dotenv
+from dotenv import load_dotenv, set_key, find_dotenv  # CHANGE: Added set_key and find_dotenv for .env file updates
 
 load_dotenv()
 
 class GmailMCPClient:
     """
-    Professional MCP client with isolated Windows-compatible event loop
+    Professional MCP client with automatic token refresh - NO MORE MANUAL STEPS!
     """
     
     def __init__(self):
@@ -45,7 +48,7 @@ class GmailMCPClient:
                     "transport": "stdio"
                 }
             }
-            print(f"Gmail MCP Client initialized with isolated event loop (npx: {self.npx_path})")
+            print(f"Gmail MCP Client initialized with automatic token refresh (npx: {self.npx_path})")
         else:
             print("Warning: npx not found, MCP will fail")
             self.mcp_config = {}
@@ -58,7 +61,13 @@ class GmailMCPClient:
             "google_refresh_token": os.getenv("GOOGLE_REFRESH_TOKEN")
         }
         
+        # CHANGE: Added token management properties for automatic refresh
+        self.token_refresh_url = "https://oauth2.googleapis.com/token"
+        self.last_token_refresh = 0
+        self.token_expiry_buffer = 300  # Refresh 5 minutes before expiry
+        
         print(f"Gmail credentials loaded: {bool(self.gmail_credentials['google_access_token'])}")
+        print("Automatic token refresh enabled - no more manual steps!")
     
     def __del__(self):
         """Cleanup thread pool on destruction"""
@@ -75,34 +84,172 @@ class GmailMCPClient:
             return await self._connect_internal()
     
     async def send_email(self, recipient: str, subject: str, body: str, html_body: str = None) -> Dict[str, Any]:
-        """Send email using isolated event loop"""
+        """Send email with automatic token refresh - NO MANUAL INTERVENTION NEEDED!"""
         if not self.is_connected:
             print("Not connected, attempting to connect...")
             connect_result = await self.connect()
             if not connect_result:
                 return {"success": False, "error": "Failed to connect to MCP server"}
         
+        # CHANGE: Modified to use new auto-refresh method instead of direct send
         if sys.platform == "win32":
             return await self._run_mcp_operation(
-                self._send_email_internal, 
+                self._send_email_with_auto_refresh, 
                 recipient, subject, body, html_body
             )
         else:
-            return await self._send_email_internal(recipient, subject, body, html_body)
+            return await self._send_email_with_auto_refresh(recipient, subject, body, html_body)
     
-    async def refresh_token(self) -> Dict[str, Any]:
-        """Refresh Gmail access token using isolated event loop"""
-        if sys.platform == "win32":
-            return await self._run_mcp_operation(self._refresh_token_internal)
-        else:
-            return await self._refresh_token_internal()
+    # CHANGE: NEW METHOD - Send email with automatic token refresh logic
+    async def _send_email_with_auto_refresh(self, recipient: str, subject: str, body: str, html_body: str = None) -> Dict[str, Any]:
+        """
+        Send email with automatic token refresh logic - FULLY AUTOMATED!
+        """
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                print(f"Attempt {attempt + 1}: Sending email to {recipient}")
+                
+                # CHANGE: Added proactive token refresh check
+                if self._should_refresh_token():
+                    print("Proactively refreshing token...")
+                    refresh_result = await self._refresh_access_token()
+                    if not refresh_result["success"]:
+                        print(f"Proactive token refresh failed: {refresh_result['error']}")
+                        # Continue anyway, maybe the token is still valid
+                
+                # Try to send email
+                result = await self._send_email_internal(recipient, subject, body, html_body)
+                
+                # If successful, return immediately
+                if result["success"]:
+                    print("Email sent successfully!")
+                    return result
+                
+                # CHANGE: Added authentication error detection and auto-refresh
+                error_msg = result.get("error", "").lower()
+                if any(auth_error in error_msg for auth_error in ["401", "403", "unauthorized", "invalid_grant", "token", "auth"]):
+                    print(f"Authentication error detected: {result['error']}")
+                    
+                    if attempt < max_retries - 1:  # Don't refresh on last attempt
+                        print("Attempting automatic token refresh...")
+                        refresh_result = await self._refresh_access_token()
+                        
+                        if refresh_result["success"]:
+                            print("Token refreshed successfully! Retrying email send...")
+                            # Update credentials for next attempt
+                            continue
+                        else:
+                            print(f"Automatic token refresh failed: {refresh_result['error']}")
+                            return {
+                                "success": False,
+                                "error": f"Authentication failed and token refresh failed: {refresh_result['error']}"
+                            }
+                    else:
+                        return {
+                            "success": False,
+                            "error": f"Authentication failed after token refresh attempts: {result['error']}"
+                        }
+                else:
+                    # Non-auth error, return immediately
+                    return result
+                    
+            except Exception as e:
+                print(f"Attempt {attempt + 1} failed with exception: {e}")
+                if attempt == max_retries - 1:
+                    return {"success": False, "error": f"All attempts failed: {str(e)}"}
+        
+        return {"success": False, "error": "All retry attempts exhausted"}
     
-    async def get_recent_emails(self, max_results: int = 5) -> Dict[str, Any]:
-        """Get recent emails using isolated event loop"""
-        if sys.platform == "win32":
-            return await self._run_mcp_operation(self._get_recent_emails_internal, max_results)
-        else:
-            return await self._get_recent_emails_internal(max_results)
+    # CHANGE: NEW METHOD - Check if we should proactively refresh the token
+    def _should_refresh_token(self) -> bool:
+        """
+        Check if we should proactively refresh the token
+        """
+        # Refresh if we haven't refreshed in the last hour
+        time_since_refresh = time.time() - self.last_token_refresh
+        return time_since_refresh > 3000  # 50 minutes
+    
+    # CHANGE: NEW METHOD - Automatically refresh access token using refresh token
+    async def _refresh_access_token(self) -> Dict[str, Any]:
+        """
+        Automatically refresh access token using refresh token - NO BROWSER NEEDED!
+        """
+        try:
+            print("Starting automatic token refresh...")
+            
+            if not self.gmail_credentials["google_refresh_token"]:
+                return {"success": False, "error": "No refresh token available"}
+            
+            # Prepare refresh request
+            refresh_data = {
+                "client_id": self.gmail_credentials["google_client_id"],
+                "client_secret": self.gmail_credentials["google_client_secret"],
+                "refresh_token": self.gmail_credentials["google_refresh_token"],
+                "grant_type": "refresh_token"
+            }
+            
+            print("Making token refresh request to Google...")
+            
+            # CHANGE: Make refresh request to Google's OAuth2 endpoint
+            response = requests.post(
+                self.token_refresh_url,
+                data=refresh_data,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                token_data = response.json()
+                new_access_token = token_data.get("access_token")
+                
+                if new_access_token:
+                    print("New access token received!")
+                    
+                    # CHANGE: Update credentials in memory
+                    self.gmail_credentials["google_access_token"] = new_access_token
+                    self.last_token_refresh = time.time()
+                    
+                    # CHANGE: Update .env file automatically
+                    env_path = find_dotenv()
+                    if env_path:
+                        set_key(env_path, "GOOGLE_ACCESS_TOKEN", new_access_token)
+                        print("Updated .env file with new access token")
+                    
+                    # CHANGE: Update environment variable for current session
+                    os.environ["GOOGLE_ACCESS_TOKEN"] = new_access_token
+                    
+                    print("Token refresh completed successfully - fully automated!")
+                    return {
+                        "success": True,
+                        "new_access_token": new_access_token,
+                        "method": "automatic_refresh"
+                    }
+                else:
+                    return {"success": False, "error": "No access token in refresh response"}
+            else:
+                error_detail = response.text
+                print(f"Token refresh failed: {response.status_code} - {error_detail}")
+                
+                # CHANGE: Check for specific error types to provide better error messages
+                if "invalid_grant" in error_detail:
+                    return {
+                        "success": False,
+                        "error": "Refresh token expired or invalid. Please re-run oauth.py setup.",
+                        "requires_reauth": True
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "error": f"Token refresh failed: {response.status_code} - {error_detail}"
+                    }
+                    
+        except requests.RequestException as e:
+            print(f"Network error during token refresh: {e}")
+            return {"success": False, "error": f"Network error during token refresh: {str(e)}"}
+        except Exception as e:
+            print(f"Unexpected error during token refresh: {e}")
+            return {"success": False, "error": f"Unexpected error during token refresh: {str(e)}"}
     
     async def _run_mcp_operation(self, operation, *args):
         """
@@ -188,9 +335,12 @@ class GmailMCPClient:
     async def _send_email_internal(self, recipient: str, subject: str, body: str, html_body: str = None) -> Dict[str, Any]:
         """Internal send email method - runs in isolated event loop"""
         try:
+            # CHANGE: Use current access token (might be refreshed)
+            current_access_token = self.gmail_credentials["google_access_token"]
+            
             # Prepare email data in correct format for headless Gmail MCP server
             email_data = {
-                "google_access_token": self.gmail_credentials["google_access_token"],
+                "google_access_token": current_access_token,  # CHANGE: Use current token instead of original
                 "to": recipient,
                 "subject": subject,
                 "body": body
@@ -265,49 +415,13 @@ class GmailMCPClient:
             traceback.print_exc()
             return {"success": False, "error": str(e)}
     
-    async def _refresh_token_internal(self) -> Dict[str, Any]:
-        """Internal refresh token method - runs in isolated event loop"""
-        try:
-            # Get tools and find refresh token tool
-            tools = await self.client.get_tools()
-            refresh_tool = None
-            
-            for tool in tools:
-                if tool.name == "gmail_refresh_token":
-                    refresh_tool = tool
-                    break
-            
-            if not refresh_tool:
-                return {"success": False, "error": "gmail_refresh_token tool not found"}
-            
-            # Prepare refresh data
-            refresh_data = {
-                "google_refresh_token": self.gmail_credentials["google_refresh_token"],
-                "google_client_id": self.gmail_credentials["google_client_id"],
-                "google_client_secret": self.gmail_credentials["google_client_secret"]
-            }
-            
-            # Call refresh token tool
-            result = await refresh_tool.ainvoke(refresh_data)
-            
-            # Parse JSON if needed
-            if isinstance(result, str):
-                try:
-                    result = json.loads(result)
-                except json.JSONDecodeError:
-                    return {"success": False, "error": f"Invalid JSON response: {result}"}
-            
-            # Update stored access token if successful
-            if isinstance(result, dict) and "access_token" in result:
-                self.gmail_credentials["google_access_token"] = result["access_token"]
-                print("Access token refreshed successfully")
-                return {"success": True, "new_token": result["access_token"]}
-            
-            return {"success": False, "error": "Token refresh failed", "result": result}
-            
-        except Exception as e:
-            print(f"Token refresh error: {e}")
-            return {"success": False, "error": str(e)}
+    # CHANGE: Enhanced get_recent_emails method with automatic token refresh support
+    async def get_recent_emails(self, max_results: int = 5) -> Dict[str, Any]:
+        """Get recent emails with automatic token refresh"""
+        if sys.platform == "win32":
+            return await self._run_mcp_operation(self._get_recent_emails_internal, max_results)
+        else:
+            return await self._get_recent_emails_internal(max_results)
     
     async def _get_recent_emails_internal(self, max_results: int = 5) -> Dict[str, Any]:
         """Internal get recent emails method - runs in isolated event loop"""

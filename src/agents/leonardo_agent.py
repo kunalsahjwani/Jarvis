@@ -48,14 +48,14 @@ class LeonardoAgent:
            app_name = idea_context.get("name", "App")
            app_description = idea_context.get("description", "")
            
-           print(f"🎨 Generating specific {image_type} image for {app_name}")
+           print(f"Generating specific {image_type} image for {app_name}")
            
            # Create much better, specific prompts
            enhanced_prompt = await self._create_smart_prompt(
                app_name, app_category, app_description, user_prompt, image_type
            )
            
-           print(f"🖼️ Using enhanced prompt: {enhanced_prompt}")
+           print(f"Using enhanced prompt: {enhanced_prompt}")
            
            response = self.client.models.generate_content(
                model="gemini-2.0-flash-preview-image-generation",
@@ -71,7 +71,7 @@ class LeonardoAgent:
                    # CORRECT: Convert raw bytes to base64 string
                    image_base64 = base64.b64encode(part.inline_data.data).decode('utf-8')
                    
-                   print(f"✅ Image generated successfully")
+                   print(f"Image generated successfully")
                    print(f"Base64 length: {len(image_base64)} characters")
                    
                    return {
@@ -86,7 +86,7 @@ class LeonardoAgent:
            return {"success": False, "error": "No image generated"}
            
        except Exception as e:
-           print(f"❌ Error generating image: {e}")
+           print(f"Error generating image: {e}")
            return {"success": False, "error": str(e)}
    
    async def _create_smart_prompt(self, app_name: str, category: str, description: str, user_prompt: str, image_type: str) -> str:

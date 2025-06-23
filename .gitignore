@@ -46,6 +46,3 @@ Thumbs.db
 # Logs
 *.log
 logs/
-
-
-test_mcp_connection.py
