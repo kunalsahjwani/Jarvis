@@ -48,7 +48,7 @@ async function sendMessage() {
     addMessage(message, 'user');
     input.value = '';
 
-    const loadingDiv = addMessage('Steve is thinking...', 'steve');
+    const loadingDiv = addMessage('Jarvis is thinking...', 'steve');
     loadingDiv.classList.add('loading');
 
     try {
@@ -519,5 +519,5 @@ function loadJSZip() {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
-    addMessage('Welcome to Steve Connect! You can either follow the guided workflow or jump directly to any app using the tabs above. What would you like to work on?', 'steve');
+    addMessage('Welcome! You can either follow the guided workflow or jump directly to any app using the tabs above. What would you like to work on?', 'steve');
 });

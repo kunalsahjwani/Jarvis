@@ -1,4 +1,4 @@
-# src/agents/router_agent.py - Fully AI-Driven Version
+# src/agents/router_agent.py - Fully AI-Driven Version with Minimal Logging
 """
 Router Agent - Fully AI-Driven with Minimal Hardcoding
 Uses Gemini Pro for all routing decisions and intent understanding
@@ -12,6 +12,10 @@ from langchain.schema import HumanMessage, SystemMessage
 from dotenv import load_dotenv
 import json
 import re
+
+# Simple logging
+from src.utils.logger import get_logger
+logger = get_logger("router")
 
 load_dotenv()
 
@@ -29,12 +33,19 @@ class RouterAgent:
     """
     
     def __init__(self):
-        self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",
-            temperature=0.3,  # Slightly higher for more natural responses
-            google_api_key=os.getenv("GOOGLE_API_KEY"),
-            convert_system_message_to_human=True
-        )
+        logger.info("Initializing Router Agent")
+        
+        try:
+            self.llm = ChatGoogleGenerativeAI(
+                model="gemini-2.0-flash",
+                temperature=0.3,  # Slightly higher for more natural responses
+                google_api_key=os.getenv("GOOGLE_API_KEY"),
+                convert_system_message_to_human=True
+            )
+            logger.info("Router Agent initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize Router Agent: {str(e)}")
+            raise
         
         # Minimal hardcoded data - just app descriptions for AI context
         self.ecosystem_description = """
@@ -59,9 +70,9 @@ class RouterAgent:
         """
         Fully AI-driven routing - no hardcoded rules
         """
+        logger.info(f"Processing routing request: '{user_message[:50]}...'")
+        
         try:
-            print(f"AI Router processing: {user_message}")
-            
             # Initialize session context if needed
             if session_id and session_id not in self.session_contexts:
                 self.session_contexts[session_id] = {}
@@ -82,10 +93,12 @@ class RouterAgent:
             if session_id:
                 self.session_contexts[session_id]["last_ai_decision"] = routing_decision
             
+            logger.info(f"Routing decision: {routing_decision['action']} -> {routing_decision.get('app_to_open', 'chat')}")
+            
             return routing_decision
             
         except Exception as e:
-            print(f"AI Router error: {e}")
+            logger.error(f"AI Router error: {str(e)}")
             # Even error handling is AI-driven
             return await self._ai_error_recovery(user_message, str(e))
     
@@ -94,6 +107,10 @@ class RouterAgent:
         """
         Build comprehensive context for AI to analyze
         """
+        # Check for memory context in context_data
+        memory_context = context_data.get('memory_context', {})
+        has_memory_context = memory_context.get('has_context', False)
+        
         return {
             "user_message": user_message,
             "conversation_history": conversation_history[-5:] if conversation_history else [],  # Last 5 for context
@@ -101,7 +118,8 @@ class RouterAgent:
             "context_data": context_data,
             "session_id": session_id,
             "ecosystem_info": self.ecosystem_description,
-            "previous_ai_decision": self.session_contexts.get(session_id, {}).get("last_ai_decision")
+            "previous_ai_decision": self.session_contexts.get(session_id, {}).get("last_ai_decision"),
+            "memory_context": memory_context
         }
     
     async def _ai_comprehensive_routing(self, context: Dict[str, Any]) -> Dict[str, Any]:
@@ -109,6 +127,12 @@ class RouterAgent:
         Single AI call that handles all routing intelligence
         """
         try:
+            # Extract memory context summary for AI prompt
+            memory_context = context.get('memory_context', {})
+            memory_summary = ""
+            if memory_context.get('has_context', False):
+                memory_summary = f"\nRELEVANT USER HISTORY:\n{memory_context.get('context_summary', 'No summary available')}"
+            
             system_prompt = f"""
 You are Steve, an advanced AI assistant for the Steve Connect ecosystem. You have COMPLETE INTELLIGENCE to:
 
@@ -127,6 +151,7 @@ CURRENT SITUATION:
 - Conversation History: {context['conversation_history']}
 - App Data/Progress: {context['context_data']}
 - Previous Decision: {context.get('previous_ai_decision')}
+{memory_summary}
 
 CRITICAL INTELLIGENCE RULES:
  Understanding "yes/ok/sure/lets move on" means user agrees with your last suggestion
@@ -176,7 +201,7 @@ RESPONSE FORMAT (JSON only):
             return await self._parse_ai_response(response.content, context['user_message'])
             
         except Exception as e:
-            print(f"AI routing error: {e}")
+            logger.error(f"AI routing error: {str(e)}")
             return await self._ai_error_recovery(context['user_message'], str(e))
     
     async def _parse_ai_response(self, ai_response: str, user_message: str) -> Dict[str, Any]:
@@ -216,6 +241,8 @@ RESPONSE FORMAT (JSON only):
         """
         AI-driven error recovery instead of hardcoded fallbacks
         """
+        logger.error(f"AI error recovery triggered: {error_details}")
+        
         try:
             recovery_prompt = f"""
 The main routing AI encountered an error: {error_details}
@@ -253,7 +280,7 @@ Respond with simple JSON:
                 }
             
         except Exception as recovery_error:
-            print(f"AI recovery also failed: {recovery_error}")
+            logger.error(f"AI recovery also failed: {str(recovery_error)}")
         
         # Last resort fallback
         return {

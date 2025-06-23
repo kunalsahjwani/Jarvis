@@ -1,4 +1,4 @@
-# src/main.py - Enhanced with Memory System Initialization
+# src/main.py - Enhanced with Memory System Initialization and Minimal Logging
 """
 Jarvis - AI App Orchestrator
 Main FastAPI application entry point with Persistent Memory System
@@ -18,6 +18,10 @@ from dotenv import load_dotenv
 from src.api.routes import router
 from src.memory.memory_system import initialize_memory_system, get_memory_system
 
+# Simple logging
+from src.utils.logger import get_logger
+logger = get_logger("main")
+
 # Load environment variables
 load_dotenv()
 
@@ -30,45 +34,47 @@ async def lifespan(app: FastAPI):
     FastAPI lifespan context manager for startup and shutdown
     """
     # Startup
-    print("Starting Jarvis...")
+    logger.info("Starting Steve Connect application")
     
     # Initialize memory system
     global memory_system
     try:
-        print("Initializing Memory System...")
+        logger.info("Initializing Memory System")
         memory_system = await initialize_memory_system(storage_path="data/memory")
         
         # Test memory system
         test_result = await memory_system.test_memory_system()
         if test_result["status"] == "passed":
-            print("Memory System test passed")
+            logger.info("Memory System test passed successfully")
         else:
-            print(f"Memory System test failed: {test_result}")
+            logger.error(f"Memory System test failed: {test_result}")
         
-        print(f"Memory System ready with {memory_system.get_memory_stats()['total_stories']} existing stories")
+        stats = memory_system.get_memory_stats()
+        logger.info(f"Memory System ready with {stats['total_stories']} existing stories")
         
     except Exception as e:
-        print(f"Memory System initialization failed: {e}")
-        print("Continuing without memory system...")
+        logger.error(f"Memory System initialization failed: {str(e)}")
+        logger.info("Continuing without memory system")
+        memory_system = None
     
-    print("Steve Connect startup complete!")
-    print("API Documentation: http://localhost:8000/docs")
-    print("Frontend Demo: http://localhost:8000/")
+    logger.info("Steve Connect startup complete")
+    logger.info("API Documentation: http://localhost:8000/docs")
+    logger.info("Frontend Demo: http://localhost:8000/")
     
     yield
     
     # Shutdown
-    print("Shutting down Steve Connect...")
+    logger.info("Starting Steve Connect shutdown")
     
     # Force save memory before shutdown
     if memory_system:
         try:
             memory_system.force_save_memory()
-            print("Memory system saved successfully")
+            logger.info("Memory system saved successfully")
         except Exception as e:
-            print(f"Error saving memory during shutdown: {e}")
+            logger.error(f"Error saving memory during shutdown: {str(e)}")
     
-    print("Jarvis shutdown complete")
+    logger.info("Steve Connect shutdown complete")
 
 # Initialize FastAPI app with lifespan
 app = FastAPI(
@@ -157,6 +163,7 @@ async def health_check():
         }
         
     except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
         return JSONResponse(
             status_code=500,
             content={
@@ -217,6 +224,7 @@ async def not_found_handler(request, exc):
 @app.exception_handler(500)
 async def internal_error_handler(request, exc):
     """Custom 500 handler with helpful debugging info"""
+    logger.error(f"500 error: {str(exc)}")
     return JSONResponse(
         status_code=500,
         content={
@@ -279,9 +287,9 @@ if __name__ == "__main__":
     # Create data directory if it doesn't exist
     os.makedirs("data/memory", exist_ok=True)
     
-    print("Starting JARVIS v2.0 with Persistent Memory System")
-    print("Memory storage: data/memory/")
-    print("Access at: http://localhost:8000")
+    logger.info("Starting JARVIS v2.0 with Persistent Memory System")
+    logger.info("Memory storage: data/memory/")
+    logger.info("Access at: http://localhost:8000")
     
     uvicorn.run(
         "src.main:app",
