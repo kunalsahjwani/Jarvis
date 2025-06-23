@@ -1,8 +1,7 @@
-# src/api/routes.py - Updated to work with cleaned email agent
+# src/api/routes.py - Enhanced with Memory System Integration
 """
-FastAPI routes for Steve Connect - Updated Version
-Handles all API endpoints with proper context sharing between apps
-Works with cleaned EmailAgent (no predictions, recommendations, etc.)
+FastAPI routes for Steve Connect - Enhanced Version with User Story Memory
+Handles all API endpoints with proper context sharing and persistent memory
 """
 
 from fastapi import APIRouter, HTTPException, status
@@ -18,6 +17,9 @@ from src.agents.leonardo_agent import LeonardoAgent
 from src.agents.code_agent import CodeAgent
 from src.agents.email_agent import EmailAgent
 from src.agents.email_sender import EmailSender
+
+# Import memory system
+from src.memory.memory_system import get_memory_system
 
 # Create the main router
 router = APIRouter()
@@ -114,12 +116,12 @@ def _ensure_session_structure(session_id: str):
             "app_data": {}
         }
 
-# Main chat endpoint - The heart of Steve Connect
+# Main chat endpoint - Enhanced with memory context
 @router.post("/chat", response_model=ChatResponse)
 async def chat_with_steve(message: ChatMessage):
     """
     Main chat interface for Steve Connect
-    Routes user messages using the Router Agent and maintains context in memory
+    Enhanced with persistent memory context retrieval
     """
     try:
         # Get or create session
@@ -137,12 +139,26 @@ async def chat_with_steve(message: ChatMessage):
         # Add current message to history
         conversation_history.append({"user": message.message})
         
-        # Route the message using Router Agent
+        # NEW: Get memory context for the user's message
+        memory_system = get_memory_system()
+        memory_context = await memory_system.get_context_for_chat(
+            user_message=message.message,
+            session_context=session_context,
+            max_stories=5
+        )
+        
+        # Enhanced context data includes memory
+        enhanced_context_data = {
+            **session_context.get("app_data", {}),
+            'memory_context': memory_context
+        }
+        
+        # Route the message using Router Agent with memory context
         routing_result = await router_agent.route_message(
             user_message=message.message,
             conversation_history=conversation_history,
             current_app=current_app,
-            context_data=session_context.get("app_data", {}),
+            context_data=enhanced_context_data,
             session_id=session_id
         )
         
@@ -150,6 +166,22 @@ async def chat_with_steve(message: ChatMessage):
         session_storage[session_id]["conversation_history"] = conversation_history
         if routing_result["action"] == "open_app" and routing_result["app_to_open"]:
             session_storage[session_id]["current_app"] = routing_result["app_to_open"]
+        
+        # NEW: Record chat interaction in memory
+        await memory_system.record_app_action(
+            app_name="chat",
+            action="user_interaction",
+            session_id=session_id,
+            user_id=message.user_id,
+            action_data={
+                "user_message": message.message,
+                "bot_response": routing_result["response"],
+                "action_taken": routing_result["action"],
+                "app_opened": routing_result.get("app_to_open"),
+                "memory_used": memory_context['has_context']
+            },
+            session_context=session_context
+        )
         
         return ChatResponse(
             response=routing_result["response"],
@@ -167,11 +199,11 @@ async def chat_with_steve(message: ChatMessage):
             detail=f"Chat processing failed: {str(e)}"
         )
 
-# App-specific endpoints
+# App-specific endpoints with memory integration
 @router.post("/ideation/submit")
 async def submit_ideation_data(action: AppAction):
     """
-    Handle ideation app data submission
+    Handle ideation app data submission with memory recording
     """
     try:
         session_id = action.session_id
@@ -181,6 +213,16 @@ async def submit_ideation_data(action: AppAction):
         
         # Save ideation context in memory
         session_storage[session_id]["app_data"]["ideation"] = ideation_data
+        
+        # 🧠 NEW: Record ideation activity in memory
+        memory_system = get_memory_system()
+        await memory_system.record_app_action(
+            app_name="ideation",
+            action="submit_data",
+            session_id=session_id,
+            action_data=ideation_data,
+            session_context=session_storage[session_id]
+        )
         
         return JSONResponse({
             "status": "success",
@@ -198,7 +240,7 @@ async def submit_ideation_data(action: AppAction):
 @router.post("/vibe-studio/generate")
 async def generate_app_code(action: AppAction):
     """
-    Generate Streamlit app code using Vibe Studio
+    Generate Streamlit app code using Vibe Studio with memory recording
     """
     try:
         session_id = action.session_id
@@ -225,7 +267,7 @@ async def generate_app_code(action: AppAction):
                 "description": user_requirements or f"{extracted_app_name} application"
             }
             
-            # Save the extracted ideation data to session for chat system
+            # CRITICAL: Save the extracted ideation data to session for chat system
             session_storage[session_id]["app_data"]["ideation"] = ideation_data
             
             print(f"Extracted and saved app context: {ideation_data}")
@@ -247,6 +289,22 @@ async def generate_app_code(action: AppAction):
                 "user_requirements": user_requirements
             }
             
+            # NEW: Record app generation in memory
+            memory_system = get_memory_system()
+            await memory_system.record_app_action(
+                app_name="vibe_studio",
+                action="generate_app",
+                session_id=session_id,
+                action_data={
+                    "app_name": generation_result["app_name"],
+                    "files_generated": len(generation_result.get("project_files", {})),
+                    "user_requirements": user_requirements,
+                    "app_structure": generation_result.get("app_structure", {}),
+                    "model_used": generation_result.get("model_used", "unknown")
+                },
+                session_context=session_storage[session_id]
+            )
+            
             print(f"Saved Vibe Studio context for session {session_id}")
         
         return JSONResponse({
@@ -266,7 +324,7 @@ async def generate_app_code(action: AppAction):
 @router.post("/design/generate-image")
 async def generate_marketing_image(action: AppAction):
     """
-    Generate marketing images using Leonardo Agent
+    Generate marketing images using Leonardo Agent with memory recording
     """
     try:
         session_id = action.session_id
@@ -321,6 +379,23 @@ async def generate_marketing_image(action: AppAction):
                 "image_generated": True,
                 "image_metadata": image_result.get("metadata", {})
             }
+            
+            # NEW: Record image generation in memory
+            memory_system = get_memory_system()
+            await memory_system.record_app_action(
+                app_name="design",
+                action="generate_image",
+                session_id=session_id,
+                action_data={
+                    "image_type": image_type,
+                    "user_prompt": user_prompt,
+                    "context_used": context,
+                    "app_context": ideation_data.get("name", "Unknown App"),
+                    "model_used": image_result.get("model_used", "unknown"),
+                    "prompt_used": image_result.get("prompt_used", user_prompt)
+                },
+                session_context=session_storage[session_id]
+            )
         
         return JSONResponse({
             "status": "success" if image_result["success"] else "error",
@@ -338,7 +413,7 @@ async def generate_marketing_image(action: AppAction):
 @router.post("/gmail/draft-email")
 async def draft_marketing_email(action: AppAction):
     """
-    Draft marketing email using cleaned Email Agent
+    Draft marketing email using Email Agent with memory recording
     """
     try:
         session_id = action.session_id
@@ -400,7 +475,7 @@ async def draft_marketing_email(action: AppAction):
         if "design" in app_data:
             app_context["design_data"] = app_data["design"]
         
-        # Generate the email using cleaned agent
+        # Generate the email
         email_result = await email_agent.generate_launch_email(
             app_context=app_context,
             target_audience=target_audience,
@@ -418,6 +493,23 @@ async def draft_marketing_email(action: AppAction):
                 "email_body": email_result["email_body"],
                 "complete_email": email_result["complete_email"]
             }
+            
+            # NEW: Record email generation in memory
+            memory_system = get_memory_system()
+            await memory_system.record_app_action(
+                app_name="gmail",
+                action="draft_email",
+                session_id=session_id,
+                action_data={
+                    "email_type": email_type,
+                    "target_audience": target_audience,
+                    "subject_line": email_result["subject_line"],
+                    "app_context": app_context.get("app_name", "Unknown App"),
+                    "context_used": context,
+                    "email_length": len(email_result.get("email_body", ""))
+                },
+                session_context=session_storage[session_id]
+            )
         
         return JSONResponse({
             "status": "success" if email_result["success"] else "error",
@@ -435,7 +527,7 @@ async def draft_marketing_email(action: AppAction):
 @router.post("/gmail/send-email")
 async def send_email_via_mcp(action: AppAction):
     """
-    Send email using MCP Gmail integration
+    Send email using MCP Gmail integration with memory recording
     """
     try:
         session_id = action.session_id
@@ -476,6 +568,22 @@ async def send_email_via_mcp(action: AppAction):
                 "method": send_result.get("method", "mcp"),
                 "mcp_tool": send_result.get("mcp_tool", "unknown")
             }
+            
+            # NEW: Record email sending in memory
+            memory_system = get_memory_system()
+            await memory_system.record_app_action(
+                app_name="gmail",
+                action="send_email",
+                session_id=session_id,
+                action_data={
+                    "recipient_email": recipient_email,
+                    "subject": subject,
+                    "message_id": send_result.get("message_id", "unknown"),
+                    "method": send_result.get("method", "mcp"),
+                    "success": True
+                },
+                session_context=session_storage[session_id]
+            )
         
         return JSONResponse({
             "status": "success" if send_result["success"] else "error",
@@ -490,6 +598,75 @@ async def send_email_via_mcp(action: AppAction):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Email sending failed: {str(e)}"
+        )
+
+# NEW: Memory system management endpoints
+@router.get("/memory/stats")
+async def get_memory_stats():
+    """
+    Get memory system statistics
+    """
+    try:
+        memory_system = get_memory_system()
+        stats = memory_system.get_memory_stats()
+        return JSONResponse({"status": "success", "stats": stats})
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get memory stats: {str(e)}"
+        )
+
+@router.get("/memory/search")
+async def search_memory(query: str, max_results: int = 10):
+    """
+    Search memory system (useful for debugging)
+    """
+    try:
+        memory_system = get_memory_system()
+        results = await memory_system.search_memories(
+            query=query,
+            max_results=max_results
+        )
+        return JSONResponse({
+            "status": "success",
+            "query": query,
+            "results_found": len(results),
+            "results": results
+        })
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Memory search failed: {str(e)}"
+        )
+
+@router.get("/memory/project/{project_name}")
+async def get_project_memory(project_name: str):
+    """
+    Get memory timeline for a specific project
+    """
+    try:
+        memory_system = get_memory_system()
+        timeline = await memory_system.get_project_summary(project_name)
+        return JSONResponse({"status": "success", "timeline": timeline})
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get project memory: {str(e)}"
+        )
+
+@router.post("/memory/test")
+async def test_memory_system():
+    """
+    Test the memory system functionality
+    """
+    try:
+        memory_system = get_memory_system()
+        test_result = await memory_system.test_memory_system()
+        return JSONResponse({"status": "success", "test_result": test_result})
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Memory test failed: {str(e)}"
         )
 
 # Session and context management endpoints
@@ -541,26 +718,35 @@ async def reset_session(session_id: str):
             detail=f"Failed to reset session: {str(e)}"
         )
 
-# Health checks for all agents
+# Health checks for all agents including memory
 @router.get("/health/agents")
 async def check_agents_health():
     """
-    Check if all AI agents are working properly
+    Check if all AI agents are working properly including memory system
     """
     try:
+        # Check memory system health
+        memory_system = get_memory_system()
+        memory_stats = memory_system.get_memory_stats()
+        
         health_status = {
             "router_agent": "healthy",
             "leonardo_agent": "healthy", 
             "code_agent": "healthy",
             "email_agent": "healthy",
-            "email_sender": "healthy"
+            "email_sender": "healthy",
+            "memory_system": memory_stats.get("system_status", "unknown")
         }
         
         return JSONResponse({
             "overall_status": "healthy",
             "agents": health_status,
             "session_count": len(session_storage),
-            "active_sessions": list(session_storage.keys())[-5:]
+            "active_sessions": list(session_storage.keys())[-5:],
+            "memory_stats": {
+                "total_stories": memory_stats.get("total_stories", 0),
+                "storage_size_mb": memory_stats.get("storage_size_mb", 0)
+            }
         })
         
     except Exception as e:

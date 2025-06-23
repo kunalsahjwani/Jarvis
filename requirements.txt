@@ -34,3 +34,5 @@ mcp>=1.0.0
 #torch>=2.0.0
 #transformers>=4.35.0
 #peft>=0.6.0
+
+faiss-cpu
