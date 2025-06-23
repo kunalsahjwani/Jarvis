@@ -21,7 +21,7 @@ load_dotenv()
 # Initialize FastAPI app
 app = FastAPI(
     title="Steve Connect",
-    description="AI-powered app orchestrator for Steve OS ecosystem - No Database Version",
+    description="AI-powered app orchestrator for Steve OS ecosystem",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc"

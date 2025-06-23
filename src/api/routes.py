@@ -1,8 +1,8 @@
-# src/api/routes.py - Enhanced with cross-app context sharing and MCP Gmail
+# src/api/routes.py - Updated to work with cleaned email agent
 """
-FastAPI routes for Steve Connect - Enhanced Version
+FastAPI routes for Steve Connect - Updated Version
 Handles all API endpoints with proper context sharing between apps
-Now includes MCP Gmail integration for actual email sending
+Works with cleaned EmailAgent (no predictions, recommendations, etc.)
 """
 
 from fastapi import APIRouter, HTTPException, status
@@ -17,7 +17,7 @@ from src.agents.router_agent import RouterAgent
 from src.agents.leonardo_agent import LeonardoAgent
 from src.agents.code_agent import CodeAgent
 from src.agents.email_agent import EmailAgent
-from src.agents.email_sender import EmailSender  # NEW: MCP Gmail integration
+from src.agents.email_sender import EmailSender
 
 # Create the main router
 router = APIRouter()
@@ -27,7 +27,7 @@ router_agent = RouterAgent()
 leonardo_agent = LeonardoAgent()
 code_agent = CodeAgent()
 email_agent = EmailAgent()
-email_sender = EmailSender()  # NEW: MCP Gmail sender
+email_sender = EmailSender()
 
 # In-memory storage for session data (temporary solution)
 session_storage = {}
@@ -199,12 +199,10 @@ async def submit_ideation_data(action: AppAction):
 async def generate_app_code(action: AppAction):
     """
     Generate Streamlit app code using Vibe Studio
-    NOW WITH PROPER CONTEXT EXTRACTION AND SHARING
     """
     try:
         session_id = action.session_id
         user_requirements = action.data.get("requirements", "")
-        
         
         _ensure_session_structure(session_id)
         
@@ -212,7 +210,7 @@ async def generate_app_code(action: AppAction):
         session_data = session_storage.get(session_id, {})
         ideation_data = session_data.get("app_data", {}).get("ideation", {})
         
-        # KEY FIX: If no ideation data exists, extract it from user input and SAVE IT
+        # If no ideation data exists, extract it from user input and SAVE IT
         if not ideation_data:
             print(f"No ideation data found, extracting from user input: {user_requirements}")
             
@@ -227,7 +225,7 @@ async def generate_app_code(action: AppAction):
                 "description": user_requirements or f"{extracted_app_name} application"
             }
             
-            # CRITICAL: Save the extracted ideation data to session for chat system
+            # Save the extracted ideation data to session for chat system
             session_storage[session_id]["app_data"]["ideation"] = ideation_data
             
             print(f"Extracted and saved app context: {ideation_data}")
@@ -255,7 +253,7 @@ async def generate_app_code(action: AppAction):
             "status": "success" if generation_result["success"] else "error",
             "result": generation_result,
             "next_suggestion": "Great! Your app is ready. Want to create marketing materials? I can open the Design app!",
-            "extracted_context": ideation_data  # Show what was extracted
+            "extracted_context": ideation_data
         })
         
     except Exception as e:
@@ -274,7 +272,7 @@ async def generate_marketing_image(action: AppAction):
         session_id = action.session_id
         user_prompt = action.data.get("prompt", "")
         image_type = action.data.get("image_type", "marketing")
-        context = action.data.get("context", "")  # For direct usage
+        context = action.data.get("context", "")
         
         _ensure_session_structure(session_id)
         
@@ -340,13 +338,13 @@ async def generate_marketing_image(action: AppAction):
 @router.post("/gmail/draft-email")
 async def draft_marketing_email(action: AppAction):
     """
-    Draft marketing email using Email Agent
+    Draft marketing email using cleaned Email Agent
     """
     try:
         session_id = action.session_id
         email_type = action.data.get("email_type", "launch")
         target_audience = action.data.get("target_audience", "general")
-        context = action.data.get("context", "")  # For direct usage
+        context = action.data.get("context", "")
         
         _ensure_session_structure(session_id)
         
@@ -402,7 +400,7 @@ async def draft_marketing_email(action: AppAction):
         if "design" in app_data:
             app_context["design_data"] = app_data["design"]
         
-        # Generate the email
+        # Generate the email using cleaned agent
         email_result = await email_agent.generate_launch_email(
             app_context=app_context,
             target_audience=target_audience,
@@ -417,7 +415,7 @@ async def draft_marketing_email(action: AppAction):
                 "context_used": context,
                 "email_generated": True,
                 "subject_line": email_result["subject_line"],
-                "email_body": email_result["email_body"],  # Store for sending
+                "email_body": email_result["email_body"],
                 "complete_email": email_result["complete_email"]
             }
         
@@ -434,7 +432,6 @@ async def draft_marketing_email(action: AppAction):
             detail=f"Email generation failed: {str(e)}"
         )
 
-# NEW: MCP Gmail Send Email Endpoint
 @router.post("/gmail/send-email")
 async def send_email_via_mcp(action: AppAction):
     """
@@ -556,14 +553,14 @@ async def check_agents_health():
             "leonardo_agent": "healthy", 
             "code_agent": "healthy",
             "email_agent": "healthy",
-            "email_sender": "healthy"  # NEW: MCP email sender health
+            "email_sender": "healthy"
         }
         
         return JSONResponse({
             "overall_status": "healthy",
             "agents": health_status,
             "session_count": len(session_storage),
-            "active_sessions": list(session_storage.keys())[-5:]  # Show last 5 sessions
+            "active_sessions": list(session_storage.keys())[-5:]
         })
         
     except Exception as e:
@@ -584,7 +581,7 @@ def _analyze_workflow_progress(context: Dict[str, Any]) -> Dict[str, Any]:
         "vibe_studio_complete": "vibe_studio" in app_data and bool(app_data["vibe_studio"]),
         "design_complete": "design" in app_data and bool(app_data["design"]),
         "gmail_complete": "gmail" in app_data and bool(app_data["gmail"]),
-        "email_sent": "gmail_send" in app_data and app_data["gmail_send"].get("sent", False)  # NEW: Track email sending
+        "email_sent": "gmail_send" in app_data and app_data["gmail_send"].get("sent", False)
     }
     
     completed_steps = sum([progress["ideation_complete"], progress["vibe_studio_complete"], 

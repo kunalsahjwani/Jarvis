@@ -140,7 +140,7 @@ class CodeAgent:
             }
             
         except Exception as e:
-            print(f"❌ Error generating app: {e}")
+            print(f"Error generating app: {e}")
             return {"success": False, "error": str(e)}
     
     async def _generate_with_gemini(self, app_name: str, app_description: str, app_category: str, requirements: str) -> str:

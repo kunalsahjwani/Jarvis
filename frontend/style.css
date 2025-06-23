@@ -1,0 +1,772 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 25%, #2d2d2d 50%, #1a1a1a 75%, #0f0f0f 100%);
+    min-height: 100vh;
+    color: #ffffff;
+    line-height: 1.4;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 25px;
+}
+
+.header {
+    text-align: center;
+    color: white;
+    margin-bottom: 30px;
+    padding: 20px 0;
+}
+
+.header h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.header p {
+    font-size: 1.1rem;
+    color: #888;
+    font-weight: 400;
+}
+
+/* Tab Navigation */
+.tab-navigation {
+    background: rgba(40, 40, 40, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(60, 60, 60, 0.3);
+    border-radius: 16px;
+    padding: 8px;
+    margin-bottom: 30px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.nav-tabs {
+    display: flex;
+    gap: 4px;
+    justify-content: space-between;
+}
+
+.tab-button {
+    flex: 1;
+    padding: 14px 20px;
+    background: transparent;
+    border: none;
+    border-radius: 12px;
+    color: #888;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.tab-button:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.061);
+    color: #bbb;
+}
+
+.tab-button.active {
+    background: linear-gradient(135deg, #4573f1 0%, #1f34d4 100%);
+    color: #ffffff; 
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Main Content Area */
+.main-content {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 24px;
+    min-height: 70vh;
+}
+
+/* Chat Section */
+.chat-section {
+    background: rgba(20, 20, 20, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    height: 70vh;
+    overflow: hidden;
+}
+
+.chat-header {
+    padding: 24px 24px 0 24px;
+    margin-bottom: 20px;
+    font: 1.3 rem;
+    font-weight: 600;
+}
+
+.chat-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 3px;
+    color: #ffffff;
+}
+
+.chat-subtitle {
+    color: #666;
+    font-size: 0.9rem;
+    font-weight: 400;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 0 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.message {
+    padding: 12px 16px;
+    border-radius: 15px;
+    max-width: 85%;
+    word-wrap: break-word;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.user-message {
+    background: rgba(67, 112, 246, 0.481);
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+    color: #ffffff;
+}
+
+.steve-message {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-top-left-radius: 4px;
+    align-self: flex-start;
+    color: #e0e0e0;
+}
+
+.chat-input-container {
+    display: flex;
+    gap: 12px;
+    padding: 0 24px 24px 24px;
+}
+
+.chat-input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: #ffffff;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.chat-input:focus {
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.chat-input::placeholder {
+    color: #666;
+}
+
+.send-btn {
+    background: linear-gradient(135deg, #4573f1 0%, #1f34d4 100%);
+    border: none;
+    border-radius: 12px;
+    padding: 12px 20px;
+    color: #ffffff;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.send-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+    transform: translateY(-1px);
+}
+
+/* Tab Content Area */
+.tab-content {
+    background: rgba(20, 20, 20, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    height: 70vh;
+    overflow: hidden;
+}
+
+.tab-pane {
+    display: none;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+.tab-header {
+    padding: 24px;
+    background: rgba(20, 20, 20, 0.98);
+}
+
+.tab-header h3 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.tab-body {
+    padding: 24px;
+    height: calc(100% - 80px);
+    overflow-y: auto;
+}
+
+/* Form Elements */
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #ffffff;
+    font-size: 0.95rem;
+    letter-spacing: -0.01em;
+    font-family: inherit;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    font-size: 14px;
+    color: #ffffff;
+    font-weight: 400;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.2s ease;
+    line-height: 1.4;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    border-color: #3355dd;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: #666;
+}
+
+.form-group select {
+    cursor: pointer;
+}
+
+.form-group select option {
+    background: #1a1a1a;
+    color: #ffffff;
+} 
+
+.btn {
+    background: rgba(255, 255, 255, 0.18);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: -0.01em;
+}
+
+.btn:hover {
+    background: linear-gradient(135deg, #4573f1 0%, #1f34d4 100%);
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: -0.01em;
+}
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+/* Email Send Section Styling */
+.email-send-section {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.email-send-section h4 {
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.email-send-section h4::before {
+    font-size: 18px;
+}
+
+.email-send-section .form-group {
+    margin-bottom: 16px;
+}
+
+.email-send-section input[type="email"] {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: #ffffff;
+    font-size: 14px;
+    width: 100%;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.email-send-section input[type="email"]:focus {
+    border-color: #4573f1;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(69, 115, 241, 0.1);
+}
+
+.email-send-section input[type="email"]::placeholder {
+    color: #888;
+}
+
+.email-send-section .btn {
+    background: linear-gradient(135deg, #4573f1 0%, #1f34d4 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.email-send-section .btn:hover {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.email-send-section .btn:active {
+    transform: translateY(0);
+}
+
+/* Email Status Messages */
+#emailSendStatus .success {
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #22c55e;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-top: 8px;
+}
+
+#emailSendStatus .error {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-top: 8px;
+}
+
+#emailSendStatus .loading {
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #3b82f6;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#emailSendStatus .loading::before {
+    content: '';
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(59, 130, 246, 0.3);
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Quick Actions */
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.quick-action-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.quick-action-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, #2d4def 30%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.quick-action-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.quick-action-card:hover::before {
+    opacity: 1;
+}
+
+.feature-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #ffffff;
+}
+
+.feature-description {
+    color: #9ca3af;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.workflow-section h3 {
+    font-size: 1.3 rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.workflow-section h3::before {
+    font-size: 20px;
+}
+
+.workflow-description {
+    font-size: 0.9rem;
+    color: #c0c0c0;
+    margin-bottom: 24px;
+    line-height: 1.6;
+}
+
+.workflow-steps {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.workflow-steps h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.workflow-steps ol {
+    margin-left: 20px;
+    color: #c0c0c0;
+    font-size: 0.9rem;
+}
+
+.workflow-steps li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+    padding-left: 8px;
+}
+
+.workflow-steps li strong {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Results and Output */
+.result-container {
+    margin-top: 20px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: #888;
+}
+
+.loading::before {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-top: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.success {
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    color: #2ec264;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+.error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #e04747;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+/* File Download Section */
+.file-downloads {
+    margin-top: 40px;
+}
+
+.file-downloads h4 {
+    margin-bottom: 12px;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 12px;
+    margin: 6px 0;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.file-name {
+    font-family: inherit;
+    font-size: 13px;
+    color: #e0e0e0;
+}
+
+.file-size {
+    font-size: 12px;
+    color: #888;
+    margin-left: 10px;
+}
+
+/* Email output styling */
+.emailresult, #emailResult, #codeResult, #imageResult, #ideationResult {
+    margin-top: 16px;
+    color: #ffffff;
+}
+
+details div,
+details div *,
+.emailresult div,
+.emailresult div *,
+#emailResult div,
+#emailResult div * {
+    background-color: transparent !important;
+    color: #e0e0e0 !important;
+}
+
+/* Enhanced Details/Summary for Email Preview */
+details {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    margin-top: 16px;
+    overflow: hidden;
+}
+
+details summary {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px 16px;
+    cursor: pointer;
+    font-weight: 500;
+    color: #ffffff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.2s ease;
+}
+
+details summary:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+details[open] summary {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+details > div {
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    max-height: 400px;
+    overflow-y: auto;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Custom Scrollbar */
+.chat-messages::-webkit-scrollbar,
+.tab-body::-webkit-scrollbar,
+details > div::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track,
+.tab-body::-webkit-scrollbar-track,
+details > div::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chat-messages::-webkit-scrollbar-thumb,
+.tab-body::-webkit-scrollbar-thumb,
+details > div::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover,
+.tab-body::-webkit-scrollbar-thumb:hover,
+details > div::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .main-content {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .chat-section {
+        height: 50vh;
+    }
+    
+    .tab-content {
+        height: 60vh;
+    }
+    
+    .nav-tabs {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .tab-button {
+        flex: none;
+        min-width: 100px;
+        padding: 12px 16px;
+        font-size: 13px;
+    }
+    
+    .container {
+        padding: 16px;
+    }
+    
+    .header h1 {
+        font-size: 2.2rem; 
+    }
+    
+    .email-send-section {
+        padding: 16px;
+    }
+    
+    .email-send-section h4 {
+        font-size: 1rem;
+    }
+}
