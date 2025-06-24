@@ -119,7 +119,9 @@ class CodeAgent:
 - Fine-tuned on custom dataset for domain expertise
 - Provides reliable fallback when primary model unavailable
 
-**Note**: In production environments, Claude or GPT-4 would provide superior reasoning capabilities, but Gemini's free tier makes it ideal for development and demonstration purposes.
+
+## How to decide what llm to choose
+**Note**: In production environments, Claude for generating code (or maybe full fine tuning rather than using adapters) for code generation or GPT-4 would provide superior reasoning capabilities, but Gemini's free tier for students makes it ideal for development and demonstration purposes. Every decision of choosing an LLM comes with different trade-offs like their cost per 1000 tokens; the context window. or if fine tuning our own model ( the scope of the usage of the llm for our use case or the hosting charges). These are some of the things to think about when choosing an llm while doing cost benifit analysis. 
 
 ### Technology Stack Justification
 - **LangChain**: Agent orchestration and prompt management
