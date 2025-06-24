@@ -1,6 +1,6 @@
-# src/api/routes.py - Enhanced with Memory System Integration
+# src/api/routes for our main apis
 """
-FastAPI routes for Steve Connect - Enhanced Version with User Story Memory
+FastAPI is used
 Handles all API endpoints with proper context sharing and persistent memory
 """
 
@@ -11,14 +11,14 @@ from typing import Optional, Dict, Any, List
 import uuid
 import re
 
-# Import our agents (no database imports)
+# Import our agents from src agents
 from src.agents.router_agent import RouterAgent
 from src.agents.leonardo_agent import LeonardoAgent
 from src.agents.code_agent import CodeAgent
 from src.agents.email_agent import EmailAgent
 from src.agents.email_sender import EmailSender
 
-# Import memory system
+# Import memory system from memoty folder
 from src.memory.memory_system import get_memory_system
 
 # Create the main router
@@ -31,7 +31,7 @@ code_agent = CodeAgent()
 email_agent = EmailAgent()
 email_sender = EmailSender()
 
-# In-memory storage for session data (temporary solution)
+# In-memory storage for session data (temporary solution before rag still very useful)
 session_storage = {}
 
 # Pydantic models for request/response validation
@@ -60,7 +60,7 @@ def _extract_app_name_from_text(text: str) -> str:
     if not text:
         return "MyApp"
     
-    # Look for common patterns like "app called X" or "X app"
+    # Look for common patterns like "app called X" or "X app" using regex for matching patterns 
     patterns = [
         r'(?:app (?:called|named)\s+)([a-zA-Z]\w+)',
         r'([a-zA-Z]\w+)(?:\s+app)',
@@ -116,22 +116,21 @@ def _ensure_session_structure(session_id: str):
             "app_data": {}
         }
 
-# Main chat endpoint - Enhanced with memory context
+# Main chat post endpoint 
 @router.post("/chat", response_model=ChatResponse)
 async def chat_with_steve(message: ChatMessage):
     """
-    Main chat interface for Steve Connect
-    Enhanced with persistent memory context retrieval
+    Main chat interface for jarvis using this api
     """
     try:
-        # Get or create session
+        # creatig session
         session_id = message.session_id
         if not session_id:
             session_id = str(uuid.uuid4())
         
         _ensure_session_structure(session_id)
         
-        # Get current session context
+        # Getting thr current session context
         session_context = session_storage.get(session_id, {})
         current_app = session_context.get("current_app")
         conversation_history = session_context.get("conversation_history", [])
@@ -139,7 +138,7 @@ async def chat_with_steve(message: ChatMessage):
         # Add current message to history
         conversation_history.append({"user": message.message})
         
-        # NEW: Get memory context for the user's message
+        # Get memory context for the user's message
         memory_system = get_memory_system()
         memory_context = await memory_system.get_context_for_chat(
             user_message=message.message,
@@ -162,12 +161,12 @@ async def chat_with_steve(message: ChatMessage):
             session_id=session_id
         )
         
-        # Update session storage
+        # Updatimg the session storage
         session_storage[session_id]["conversation_history"] = conversation_history
         if routing_result["action"] == "open_app" and routing_result["app_to_open"]:
             session_storage[session_id]["current_app"] = routing_result["app_to_open"]
         
-        # NEW: Record chat interaction in memory
+        # Record chat interaction in memory system
         await memory_system.record_app_action(
             app_name="chat",
             action="user_interaction",
@@ -214,7 +213,7 @@ async def submit_ideation_data(action: AppAction):
         # Save ideation context in memory
         session_storage[session_id]["app_data"]["ideation"] = ideation_data
         
-        # 🧠 NEW: Record ideation activity in memory
+        # recording the ideation activity in memory
         memory_system = get_memory_system()
         await memory_system.record_app_action(
             app_name="ideation",
@@ -267,14 +266,14 @@ async def generate_app_code(action: AppAction):
                 "description": user_requirements or f"{extracted_app_name} application"
             }
             
-            # CRITICAL: Save the extracted ideation data to session for chat system
+            # Saveng the extracted ideation data to session for chat system
             session_storage[session_id]["app_data"]["ideation"] = ideation_data
             
             print(f"Extracted and saved app context: {ideation_data}")
         else:
             print(f"Using existing ideation data: {ideation_data}")
         
-        # Generate the Streamlit app
+        # Generate the Streamlit app using vibe studio
         generation_result = await code_agent.generate_streamlit_app(
             app_idea=ideation_data,
             user_requirements=user_requirements
@@ -355,7 +354,7 @@ async def generate_marketing_image(action: AppAction):
             session_storage[session_id]["app_data"]["ideation"] = ideation_data
             print(f"Extracted and saved design context: {ideation_data}")
         
-        # Fallback to generic data if still no context
+        # Fallback to generic data if still no contex
         if not ideation_data:
             ideation_data = {
                 "name": "Application",
@@ -380,7 +379,7 @@ async def generate_marketing_image(action: AppAction):
                 "image_metadata": image_result.get("metadata", {})
             }
             
-            # NEW: Record image generation in memory
+            # Record image that was generated to memory
             memory_system = get_memory_system()
             await memory_system.record_app_action(
                 app_name="design",

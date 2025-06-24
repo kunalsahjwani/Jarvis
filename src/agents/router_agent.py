@@ -1,4 +1,4 @@
-# src/agents/router_agent.py - Fully AI-Driven Version with Minimal Logging
+# src/agents/router_agent.py - Fully AI-Driven Version that understands intent, USES A LOTTT of prompt engineering
 """
 Router Agent - Fully AI-Driven with Minimal Hardcoding
 Uses Gemini Pro for all routing decisions and intent understanding
@@ -38,7 +38,7 @@ class RouterAgent:
         try:
             self.llm = ChatGoogleGenerativeAI(
                 model="gemini-2.0-flash",
-                temperature=0.3,  # Slightly higher for more natural responses
+                temperature=0.3,  # Slightly higher for more natural responses, can tweak and test
                 google_api_key=os.getenv("GOOGLE_API_KEY"),
                 convert_system_message_to_human=True
             )
@@ -47,7 +47,7 @@ class RouterAgent:
             logger.error(f"Failed to initialize Router Agent: {str(e)}")
             raise
         
-        # Minimal hardcoded data - just app descriptions for AI context
+        # Minimal hardcoded data - just app descriptions for AI context, basically letting our router know what each app does
         self.ecosystem_description = """
         Steve Connect Ecosystem:
         - IDEATION: Brainstorm and plan app concepts across any category
@@ -86,10 +86,10 @@ class RouterAgent:
                 session_id
             )
             
-            # Single AI call handles all routing logic
+            # Single AI call handles all routing logic to make it easy
             routing_decision = await self._ai_comprehensive_routing(full_context)
             
-            # Store any AI insights for next interaction
+            # Store any AI insights for next interaction so that i have context
             if session_id:
                 self.session_contexts[session_id]["last_ai_decision"] = routing_decision
             
@@ -99,7 +99,7 @@ class RouterAgent:
             
         except Exception as e:
             logger.error(f"AI Router error: {str(e)}")
-            # Even error handling is AI-driven
+            # 
             return await self._ai_error_recovery(user_message, str(e))
     
     def _build_ai_context(self, user_message: str, conversation_history: List, 
@@ -282,7 +282,7 @@ Respond with simple JSON:
         except Exception as recovery_error:
             logger.error(f"AI recovery also failed: {str(recovery_error)}")
         
-        # Last resort fallback
+        # Last resort fallback, hope this never happens lol!
         return {
             "response": "I'm Steve, your AI assistant! I'm here to help you create amazing apps. What would you like to build?",
             "action": "continue_chat",

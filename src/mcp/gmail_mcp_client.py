@@ -12,12 +12,12 @@ import concurrent.futures
 import threading
 import sys
 import json
-# CHANGE: Added new imports for automatic token refresh functionality
+
 import requests
 import time
 from typing import Dict, Any, Optional
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from dotenv import load_dotenv, set_key, find_dotenv  # CHANGE: Added set_key and find_dotenv for .env file updates
+from dotenv import load_dotenv, set_key, find_dotenv
 
 load_dotenv()
 
@@ -33,13 +33,13 @@ class GmailMCPClient:
         # Find npx path
         self.npx_path = shutil.which("npx")
         
-        # Create dedicated thread pool for MCP operations (max 1 worker for simplicity)
+        # Create dedicated thread pool for MCP operations (XX)
         self.mcp_executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=1, 
             thread_name_prefix="mcp_gmail"
         )
         
-        # MCP server configuration
+        # MCP server configuration using the glama marketplac
         if self.npx_path:
             self.mcp_config = {
                 "gmail": {
@@ -53,7 +53,7 @@ class GmailMCPClient:
             print("Warning: npx not found, MCP will fail")
             self.mcp_config = {}
         
-        # Gmail credentials from environment
+        # Gmail credentials from ,env
         self.gmail_credentials = {
             "google_client_id": os.getenv("GOOGLE_CLIENT_ID"),
             "google_client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
@@ -61,7 +61,7 @@ class GmailMCPClient:
             "google_refresh_token": os.getenv("GOOGLE_REFRESH_TOKEN")
         }
         
-        # CHANGE: Added token management properties for automatic refresh
+        # added token management properties for automatic refresh
         self.token_refresh_url = "https://oauth2.googleapis.com/token"
         self.last_token_refresh = 0
         self.token_expiry_buffer = 300  # Refresh 5 minutes before expiry
@@ -91,7 +91,7 @@ class GmailMCPClient:
             if not connect_result:
                 return {"success": False, "error": "Failed to connect to MCP server"}
         
-        # CHANGE: Modified to use new auto-refresh method instead of direct send
+        # to use new auto-refresh method instead of direct send
         if sys.platform == "win32":
             return await self._run_mcp_operation(
                 self._send_email_with_auto_refresh, 
@@ -100,7 +100,7 @@ class GmailMCPClient:
         else:
             return await self._send_email_with_auto_refresh(recipient, subject, body, html_body)
     
-    # CHANGE: NEW METHOD - Send email with automatic token refresh logic
+    # Send email with automatic token refresh logic
     async def _send_email_with_auto_refresh(self, recipient: str, subject: str, body: str, html_body: str = None) -> Dict[str, Any]:
         """
         Send email with automatic token refresh logic - FULLY AUTOMATED!
@@ -110,7 +110,7 @@ class GmailMCPClient:
             try:
                 print(f"Attempt {attempt + 1}: Sending email to {recipient}")
                 
-                # CHANGE: Added proactive token refresh check
+                # added proactive token refresh check
                 if self._should_refresh_token():
                     print("Proactively refreshing token...")
                     refresh_result = await self._refresh_access_token()
@@ -121,23 +121,23 @@ class GmailMCPClient:
                 # Try to send email
                 result = await self._send_email_internal(recipient, subject, body, html_body)
                 
-                # If successful, return immediately
+                # If successful, return immediately, sometimes timeout errors are there
                 if result["success"]:
                     print("Email sent successfully!")
                     return result
                 
-                # CHANGE: Added authentication error detection and auto-refresh
+                # CHANGE: Added authentication error detection and auto-refres for the errors
                 error_msg = result.get("error", "").lower()
                 if any(auth_error in error_msg for auth_error in ["401", "403", "unauthorized", "invalid_grant", "token", "auth"]):
                     print(f"Authentication error detected: {result['error']}")
                     
-                    if attempt < max_retries - 1:  # Don't refresh on last attempt
+                    if attempt < max_retries - 1:  
                         print("Attempting automatic token refresh...")
                         refresh_result = await self._refresh_access_token()
                         
                         if refresh_result["success"]:
                             print("Token refreshed successfully! Retrying email send...")
-                            # Update credentials for next attempt
+                            
                             continue
                         else:
                             print(f"Automatic token refresh failed: {refresh_result['error']}")
@@ -161,7 +161,7 @@ class GmailMCPClient:
         
         return {"success": False, "error": "All retry attempts exhausted"}
     
-    # CHANGE: NEW METHOD - Check if we should proactively refresh the token
+    #  Checkoing if we should proactively refresh the token
     def _should_refresh_token(self) -> bool:
         """
         Check if we should proactively refresh the token
@@ -170,7 +170,7 @@ class GmailMCPClient:
         time_since_refresh = time.time() - self.last_token_refresh
         return time_since_refresh > 3000  # 50 minutes
     
-    # CHANGE: NEW METHOD - Automatically refresh access token using refresh token
+    # Automatically refresh access token using refresh token
     async def _refresh_access_token(self) -> Dict[str, Any]:
         """
         Automatically refresh access token using refresh token - NO BROWSER NEEDED!
@@ -191,7 +191,7 @@ class GmailMCPClient:
             
             print("Making token refresh request to Google...")
             
-            # CHANGE: Make refresh request to Google's OAuth2 endpoint
+            # Make refresh request to Google's OAuth2 endpoint
             response = requests.post(
                 self.token_refresh_url,
                 data=refresh_data,
@@ -206,7 +206,7 @@ class GmailMCPClient:
                 if new_access_token:
                     print("New access token received!")
                     
-                    # CHANGE: Update credentials in memory
+                    #  Update credentials in memory
                     self.gmail_credentials["google_access_token"] = new_access_token
                     self.last_token_refresh = time.time()
                     
@@ -216,7 +216,7 @@ class GmailMCPClient:
                         set_key(env_path, "GOOGLE_ACCESS_TOKEN", new_access_token)
                         print("Updated .env file with new access token")
                     
-                    # CHANGE: Update environment variable for current session
+                    # udate environment variable for current session
                     os.environ["GOOGLE_ACCESS_TOKEN"] = new_access_token
                     
                     print("Token refresh completed successfully - fully automated!")
@@ -231,7 +231,7 @@ class GmailMCPClient:
                 error_detail = response.text
                 print(f"Token refresh failed: {response.status_code} - {error_detail}")
                 
-                # CHANGE: Check for specific error types to provide better error messages
+                # CCheck for specific error types to provide better error messages
                 if "invalid_grant" in error_detail:
                     return {
                         "success": False,
@@ -259,7 +259,7 @@ class GmailMCPClient:
         def run_in_thread():
             # Create new event loop for this thread
             if sys.platform == "win32":
-                # Use ProactorEventLoop for Windows subprocess support
+                # Use ProactorEventLoop for Windows subprocess support (XX)
                 asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
@@ -335,7 +335,7 @@ class GmailMCPClient:
     async def _send_email_internal(self, recipient: str, subject: str, body: str, html_body: str = None) -> Dict[str, Any]:
         """Internal send email method - runs in isolated event loop"""
         try:
-            # CHANGE: Use current access token (might be refreshed)
+            # Use current access token (might be refreshed)
             current_access_token = self.gmail_credentials["google_access_token"]
             
             # Prepare email data in correct format for headless Gmail MCP server

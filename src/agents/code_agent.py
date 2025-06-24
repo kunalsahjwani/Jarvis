@@ -3,9 +3,7 @@
 """
 Code Generation Agent with dual strategy:
 1. Primary: Google Gemini (fast, reliable)
-2. Fallback: Your fine-tuned model (specialized) - Currently commented out
-3. Fail cleanly if both fail
-4. SIMPLIFIED: Always generates simple, focused apps
+2. Fallback:  fine-tuned model QWEN 2.5 coder (specialized for streamlit generation) - Currently commented out
 """
 
 import os
@@ -29,7 +27,7 @@ class CodeAgent:
     def __init__(self):
         print("Initializing Code Agent with dual strategy...")
         
-        # Initialize Gemini (primary)
+        # Initialize Gemini (primary agent)
         try:
             self.llm = ChatGoogleGenerativeAI(
                 model="gemini-2.0-flash",

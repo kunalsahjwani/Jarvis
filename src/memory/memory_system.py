@@ -74,7 +74,7 @@ class MemorySystem:
                 print(f"Failed to write story: {story_result.get('error', 'Unknown error')}")
                 return False
             
-            # Store story in vector memory
+            # Store story in vector memry
             storage_success = await self.vector_manager.add_story(story_result)
             
             if storage_success:

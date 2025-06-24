@@ -2,6 +2,7 @@
 """
 Email Sender - Enhanced with Automatic Token Refresh Support
 Works seamlessly with enhanced MCP Gmail client for fully automated email sending
+uses mcp server from the famous marketplace glama
 """
 
 import os
@@ -14,7 +15,7 @@ load_dotenv()
 
 class EmailSender:
     """
-    Email sender with enhanced MCP Gmail integration - FULLY AUTOMATED!
+    Email sender with enhanced MCP Gmail integration
     """
     
     def __init__(self):
@@ -38,7 +39,6 @@ class EmailSender:
                         sender_name: str = "Steve Connect") -> Dict[str, Any]:
         """
         Send email via MCP Gmail integration with automatic token refresh
-        NO MANUAL INTERVENTION REQUIRED!
         """
         try:
             # Validation first
@@ -48,12 +48,11 @@ class EmailSender:
             if not self.mcp_client:
                 return {"success": False, "error": "MCP not available (npx not found)"}
             
-            # CHANGE: Updated logging to reflect automatic token management
+            # CHANGE: Updated logging to reflect automatic token management, just using print statements for now
             print(f"Sending email: '{subject}' to {recipient_email}")
             print("Automatic token management enabled...")
             
-            # CHANGE: Enhanced comment - the MCP client now handles token refresh automatically
-            # Send via enhanced MCP Gmail client (handles token refresh automatically)
+            # Send via enhanced MCP Gmail client (handles token refresh automatically good for rate limits set by google to not use oauth.py again and again)
             result = await self.mcp_client.send_email(
                 recipient=recipient_email,
                 subject=subject,
@@ -68,14 +67,13 @@ class EmailSender:
                     "message_id": result["message_id"],
                     "recipient": recipient_email,
                     "subject": subject,
-                    # CHANGE: Updated method name to reflect automatic refresh capability
                     "method": "mcp_gmail_auto_refresh",
                     "mcp_tool": result.get("mcp_tool", "gmail_send_email")
                 }
             else:
                 print(f"Email send failed: {result.get('error')}")
                 
-                # CHANGE: Added handling for reauth requirement
+                # handling for reauth requirement
                 if result.get("requires_reauth"):
                     return {
                         "success": False,
@@ -103,7 +101,7 @@ class EmailSender:
             return False
         return True
     
-    # CHANGE: NEW METHOD - Added token status checking functionality
+    # will use token status checking functionality
     async def check_token_status(self) -> Dict[str, Any]:
         """
         Check current token status and refresh if needed
@@ -113,7 +111,7 @@ class EmailSender:
             return {"success": False, "error": "MCP client not available"}
         
         try:
-            # Try a simple operation to test token validity
+            # will Try using simple operation to test token validity, to make everything work
             result = await self.mcp_client.get_recent_emails(max_results=1)
             
             if result["success"]:

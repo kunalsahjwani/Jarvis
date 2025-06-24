@@ -1,7 +1,7 @@
 # src/agents/story_writer_agent.py
 """
-Story Writer Agent - Converts app actions into narrative user stories
-Transforms raw API events into coherent, searchable user journey documentation
+Story Writer Agent - Converts app actions into narrative user stories, good for semantic search ( we cant use our old friend rdbs for this)
+Transforms raw API events into coherent, searchable user journey documentation for us to perform semantic search
 """
 
 import os

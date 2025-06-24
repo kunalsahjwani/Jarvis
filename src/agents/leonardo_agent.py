@@ -1,8 +1,7 @@
-# src/agents/leonardo_agent.py - Enhanced with workflow integration and fixed image decoding
+# src/agents/leonardo_agent.py
 """
-Leonardo Agent - AI Image Generation for Steve Connect
-Enhanced with better prompts and workflow integration
-Fixed UTF-8 decoding error for image data
+Leonardo Agent - AI Image Generation for Jarvis
+Enhanced with better prompts using prompt engineering techniques
 """
 
 import os
@@ -22,11 +21,11 @@ class LeonardoAgent:
    """
    
    def __init__(self):
-       # Keep the working Google Gemini client
+       # Keep the working Google Gemini, i was using stable diffusion from hugging face previously but wanted me to use pro
        api_key = os.getenv("GOOGLE_API_KEY")
        self.client = genai.Client(api_key=api_key)
        
-       # Add LLM for smart prompt generation
+       # Add LLM for smart prompt generation to generate the images, using gemini 2.0 flash
        self.llm = ChatGoogleGenerativeAI(
            model="gemini-2.0-flash",
            temperature=0.7,
@@ -50,7 +49,7 @@ class LeonardoAgent:
            
            print(f"Generating specific {image_type} image for {app_name}")
            
-           # Create much better, specific prompts
+           # Create much better, specific prompts basically doing prompt engineering in the whole file based on different app types that i have
            enhanced_prompt = await self._create_smart_prompt(
                app_name, app_category, app_description, user_prompt, image_type
            )
@@ -68,7 +67,7 @@ class LeonardoAgent:
            # Extract image - FIXED method
            for part in response.candidates[0].content.parts:
                if part.inline_data is not None:
-                   # CORRECT: Convert raw bytes to base64 string
+                   # Convert raw bytes to base64 string
                    image_base64 = base64.b64encode(part.inline_data.data).decode('utf-8')
                    
                    print(f"Image generated successfully")
@@ -94,7 +93,7 @@ class LeonardoAgent:
        Use AI to create much better, specific prompts
        """
        try:
-           # SPECIAL CASE: If it's a logo, create logo-specific prompt
+           # SPECIAL CASE: If it's a logo, create logo-specific prompt, again the llm is sometimes not smart enough to identify if i am generating prompts (basically can be controlled by temperature but app logo is something that everyone requires)
            if image_type.lower() == "logo":
                logo_prompt = f"""
                Create a modern, professional logo design for an app called "{app_name}" in the {category} category.
@@ -165,7 +164,7 @@ class LeonardoAgent:
            response = await self.llm.ainvoke(messages)
            enhanced_prompt = response.content.strip()
            
-           # Add quality enhancers
+           # Adding the quality enhancers
            quality_terms = ", professional photography, high resolution, realistic, detailed, modern"
            final_prompt = enhanced_prompt + quality_terms
            
@@ -180,11 +179,11 @@ class LeonardoAgent:
        """
        Fallback category-specific prompts that are much more detailed
        """
-       # SPECIAL CASE: Logo fallback
+       # SPECIAL CASE: Logo fallback, could make it fullproof
        if image_type.lower() == "logo":
            return f"Modern minimalist logo design for {app_name} {category} app, clean vector graphics, professional branding, app icon style, simple geometric design"
        
-       # Use user prompt if provided
+       # Using the user prompt if provided
        base_prompt = user_prompt if user_prompt else f"Create a {category} image"
        
        prompts = {

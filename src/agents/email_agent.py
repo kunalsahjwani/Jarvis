@@ -1,9 +1,8 @@
-# src/agents/email_agent.py - Cleaned version with only essential code
+# src/agents/email_agent.py 
 """
 Email Agent - Powers Gmail integration for Steve Connect
 Generates marketing emails and launch campaigns based on app context
 Uses Gemini Pro for intelligent email content generation
-CLEANED: Removed unnecessary features and code bloat
 """
 
 import os
@@ -46,11 +45,11 @@ class EmailAgent:
             
             print(f"Generating {email_type} email for {app_name}")
             
-            # Generate email components
+            # Generate email components using generate subject line and generate email body
             subject_line = await self._generate_subject_line(app_name, app_category, email_type)
             email_body = await self._generate_email_body(app_context, target_audience, email_type)
             
-            # Compile the complete email
+            # Compile the complete email qith the subject line
             complete_email = self._compile_email(subject_line, email_body, app_context)
             
             return {
@@ -70,7 +69,7 @@ class EmailAgent:
                 "error": str(e),
                 "app_name": app_context.get("app_name", "Unknown")
             }
-    
+                #generating subject line by using enhanced clean prompts
     async def _generate_subject_line(self, app_name: str, app_category: str, email_type: str) -> str:
         """
         Generate compelling subject line for the email
@@ -113,14 +112,14 @@ class EmailAgent:
             response = await self.llm.ainvoke(messages)
             raw_subject = response.content.strip()
             
-            # Clean up the response
+            # Clean up the response to get raw subject
             subject_line = self._clean_subject_line(raw_subject)
             
-            # Ensure it's not too long
+            # Ensure it's not too long, just a check so that it doesnt get messsy
             if len(subject_line) > 50:
                 subject_line = subject_line[:47] + "..."
             
-            # Final validation - if it still contains instructional text, use fallback
+            # Final validation - if it still contains instructional text, use fallback, so that something gets generated
             if self._contains_instructional_text(subject_line):
                 subject_line = f"Introducing {app_name}"
                 if len(subject_line) > 50:
@@ -149,7 +148,7 @@ class EmailAgent:
         for pattern in instructional_patterns:
             cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
         
-        # Remove quotes and extra whitespace
+        # Remove quotes and extra whitespace (just some processing to display clean data)
         cleaned = cleaned.strip().replace('"', '').replace("'", "")
         
         # If multiple lines, take the first non-instructional line
@@ -174,7 +173,7 @@ class EmailAgent:
         
         text_lower = text.lower()
         return any(word in text_lower for word in instructional_words)
-    
+    # email body function to generate the actual email body using system and user prompt
     async def _generate_email_body(self, app_context: Dict[str, Any], target_audience: str, email_type: str) -> str:
         """
         Generate the main email body content
@@ -231,7 +230,7 @@ Ready to get started?
 Best regards,
 The Team
 """
-    
+    # compile email makes it look good when displaying, shows clean design of the email, have good alignment rather than plain text given by the llm
     def _compile_email(self, subject: str, body: str, app_context: Dict[str, Any]) -> str:
         """
         Compile the complete email with HTML formatting
