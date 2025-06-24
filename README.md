@@ -113,7 +113,7 @@ class CodeAgent:
 - Cost-effective for development and testing
 
 ### Fine-Tuned Model: Qwen 2.5 Coder (Hugging Face)
-**Rationale**: Laptop-compatible model for specialized code generation
+**Rationale**: used for specialized code generation for vibe studio
 - Small enough to run locally (1.5B parameters)
 - Optimized for Python/Streamlit code patterns
 - Fine-tuned on custom dataset for domain expertise
