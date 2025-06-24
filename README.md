@@ -7,7 +7,7 @@
 ## Problem Statement & Solution
 
 ### Core Problem
-The current jarvis lacks:
+The current problems I identified and tackled:
 - **Cross-app memory**: No shared context between different applications
 - **Intelligent routing**: Manual navigation without understanding user intent
 - **Persistent sessions**: Lost context when switching between apps
