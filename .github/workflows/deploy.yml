@@ -2,7 +2,7 @@ name: CI-CD Pipeline for Steve Jarvis
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths-ignore:
       - 'README.md'
 
