@@ -68,7 +68,7 @@ class RouterAgent:
                           context_data: Dict[str, Any] = None,
                           session_id: str = None) -> Dict[str, Any]:
         """
-        Fully AI-driven routing - no hardcoded rules
+        Fully AI-driven routin
         """
         logger.info(f"Processing routing request: '{user_message[:50]}...'")
         

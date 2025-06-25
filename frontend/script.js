@@ -3,7 +3,7 @@ let currentSessionId = null;
 let currentApp = null;
 
 // API Base URL
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = 'http://35.172.183.78:8000/api/v1';
 
 // Tab Management
 function switchTab(tabName) {
